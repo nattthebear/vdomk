@@ -4,7 +4,7 @@ export interface VElement {
 	props: Record<string, any>;
 	children: VNode;
 }
-export interface VComponent<P extends Record<string, any>> {
+export interface VComponent<P extends Record<string, any> = any> {
 	$type: "$VCo";
 	type: (props: P) => VNode;
 	props: P;
@@ -12,12 +12,12 @@ export interface VComponent<P extends Record<string, any>> {
 export type VArray = VNode[];
 export type VText = number | string;
 export type VNothing = boolean | null | undefined;
-export type VNode = VElement | VComponent<any> | VArray | VText | VNothing;
+export type VNode = VElement | VComponent | VArray | VText | VNothing;
 
 export function isVElement(vNode: VNode): vNode is VElement {
 	return (vNode as any)?.$type === "$VEl";
 }
-export function isVComponent(vNode: VNode): vNode is VComponent<any> {
+export function isVComponent(vNode: VNode): vNode is VComponent {
 	return (vNode as any)?.$type === "$VCo";
 }
 const { isArray } = Array;
