@@ -46,4 +46,17 @@ describe("render tests", import.meta.url, (it) => {
 		</div>
 	);
 	doTest("props", <div tabIndex={3} />);
+	function Component() {
+		return <div />;
+	}
+	doTest("component", <Component />);
+	function Pomponent({ foo }: { foo: string }) {
+		return <div>{foo}</div>;
+	}
+	doTest(
+		"component with props",
+		<span>
+			<Pomponent foo="wow" />
+		</span>
+	);
 });

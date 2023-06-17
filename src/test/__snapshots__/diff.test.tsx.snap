@@ -47,6 +47,12 @@
 		],
 		"props": [
 			"<div tabindex=\"3\"></div>"
+		],
+		"component": [
+			"<div></div>"
+		],
+		"component with props": [
+			"<span><div>wow</div></span>"
 		]
 	}
 }
