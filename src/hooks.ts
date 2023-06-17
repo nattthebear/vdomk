@@ -1,4 +1,6 @@
-import { getCurrentHookState } from "./Component";
+import { getCurrentHookState, hookScheduleUpdate } from "./Component";
+
+const { is } = Object;
 
 export interface RefObject<T> {
 	current: T;
@@ -16,10 +18,15 @@ export function useState<S>(initialValue: S) {
 		const result: UseStateResult<S> = [
 			initialValue,
 			(newValue) => {
+				let nextValue: S;
 				if (typeof newValue === "function") {
-					result[0] = (newValue as (oldValue: S) => S)(result[0]);
+					nextValue = (newValue as (oldValue: S) => S)(result[0]);
 				} else {
-					result[0] = newValue;
+					nextValue = newValue;
+				}
+				if (!is(result[0], nextValue)) {
+					result[0] = nextValue;
+					hookScheduleUpdate();
 				}
 			},
 		];
@@ -34,14 +41,17 @@ export function useReducer<S, A>(reducer: Reducer<S, A>, initialState: S) {
 		const result: UseReducerResult<S, A> = [
 			initialState,
 			(action) => {
-				result[0] = reducer(result[0], action);
+				const nextValue = reducer(result[0], action);
+				if (!is(result[0], nextValue)) {
+					result[0] = nextValue;
+					hookScheduleUpdate();
+				}
 			},
 		];
 		return result;
 	});
 }
 
-const { is } = Object;
 function shallowEqual<T extends any[]>(x: T, y: T) {
 	if (x.length !== y.length) {
 		return false;

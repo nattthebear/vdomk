@@ -74,3 +74,6 @@ export function getCurrentHookState<T>(initializer: () => T) {
 	}
 	return hooks[currentHookIndex++] as T;
 }
+export function hookScheduleUpdate() {
+	currentLayer!.scheduleUpdate();
+}
