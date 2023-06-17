@@ -38,6 +38,15 @@
 		],
 		"array 3": [
 			"abc<div></div>d"
+		],
+		"prop-children": [
+			"<div><div></div></div>"
+		],
+		"attribs": [
+			"<div class=\"huh\"><span style=\"color: black;\">Hey hey hey</span></div>"
+		],
+		"props": [
+			"<div tabindex=\"3\"></div>"
 		]
 	}
 }

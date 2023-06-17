@@ -38,4 +38,12 @@ describe("render tests", import.meta.url, (it) => {
 	doTest("array", ["a", "b", "c", "d"]);
 	doTest("array 2", ["ab", "c", null, false, "d"]);
 	doTest("array 3", ["ab", "c", <div />, false, "d"]);
+	doTest("prop-children", <div children={<div />} />);
+	doTest(
+		"attribs",
+		<div class="huh">
+			<span style="color: black;">Hey hey hey</span>
+		</div>
+	);
+	doTest("props", <div tabIndex={3} />);
 });

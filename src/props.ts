@@ -1,4 +1,4 @@
-const EVENT_REGEX = /^(on)?([a-z]+?)(capture)?$/i;
+const EVENT_REGEX = /^on([a-z]+?)(capture)?$/i;
 
 export function setProperty(element: Element, key: string, oldValue: any, newValue: any) {
 	if (oldValue === newValue) {
@@ -7,7 +7,7 @@ export function setProperty(element: Element, key: string, oldValue: any, newVal
 
 	let match: RegExpMatchArray | null;
 	if ((match = key.match(EVENT_REGEX))) {
-		let [, , eventName, capture] = match;
+		let [, eventName, capture] = match;
 		eventName = eventName.toLowerCase();
 		if (oldValue) {
 			element.removeEventListener(eventName, oldValue, !!capture);
