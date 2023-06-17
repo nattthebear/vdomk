@@ -21,4 +21,11 @@ describe("render tests", import.meta.url, (it) => {
 		});
 	}
 	doTest("first test", <div />);
+	doTest("nothing 1", null);
+	doTest("nothing 1", undefined);
+	doTest("nothing 1", true);
+	doTest("nothing 1", false);
+	doTest("text 1", 12345);
+	doTest("text 2", "abcde");
+	doTest("text 3", "<div></div>");
 });

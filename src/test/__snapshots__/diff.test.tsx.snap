@@ -2,6 +2,16 @@
 	"render tests": {
 		"first test": [
 			"<div></div>"
+		],
+		"text 3": [
+			"<div></div>",
+			"",
+			"",
+			"",
+			"",
+			"12345",
+			"abcde",
+			"&lt;div&gt;&lt;/div&gt;"
 		]
 	}
 }
