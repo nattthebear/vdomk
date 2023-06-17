@@ -2,11 +2,12 @@
 	"name": "vdomk",
 	"version": "1.0.0",
 	"description": "",
-	"main": "index.js",
 	"type": "module",
+	"exports": "./build/index.js",
 	"scripts": {
 		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx",
-		"prettier": "prettier --write src/**/*.ts"
+		"prettier": "prettier --write src/**/*.ts",
+		"build": "rimraf ./build && tsc -p ./tsconfig-build.json"
 	},
 	"author": "",
 	"license": "ISC",
@@ -15,6 +16,7 @@
 		"husky": "^8.0.3",
 		"jsdom": "^22.1.0",
 		"prettier": "^2.8.8",
+		"rimraf": "^5.0.1",
 		"ts-node": "^10.9.1",
 		"typescript": "^5.1.3"
 	},
