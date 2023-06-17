@@ -1,5 +1,18 @@
+import { ComponentLayer } from "./Component";
 import { setProperty } from "./props";
-import { VNode, VElement, VArray, VText, VNothing, isVElement, isVArray, isVText, isVNothing } from "./vdom";
+import {
+	VNode,
+	VElement,
+	VComponent,
+	VArray,
+	VText,
+	VNothing,
+	isVElement,
+	isVArray,
+	isVText,
+	isVNothing,
+	isVComponent,
+} from "./vdom";
 
 function position(child: Node) {
 	const parent: Element = child.parentElement!;
@@ -17,16 +30,16 @@ abstract class RNodeBase {
 	abstract position(): { parent: Element; at: number };
 }
 const EMPTY_PROP_OBJECT: any = {};
-class RElement extends RNodeBase {
+export class RElement extends RNodeBase {
 	type = "element" as const;
 	children: RNode;
 	element: Element;
-	constructor(public vNode: VElement, parent: Element, at: number) {
+	constructor(public vNode: VElement, parent: Element, at: number, layer: ComponentLayer) {
 		super();
 		const element = document.createElement(vNode.type);
 		parent.insertBefore(element, parent.childNodes[at] ?? null);
 		this.element = element;
-		this.children = mount(vNode.children, element, 0);
+		this.children = mount(vNode.children, element, 0, layer);
 		for (const k in vNode.props) {
 			setProperty(element, k, undefined, vNode.props[k]);
 		}
@@ -38,7 +51,7 @@ class RElement extends RNodeBase {
 		this.children.unmount();
 		this.element.remove();
 	}
-	update(vNode: VElement) {
+	update(vNode: VElement, layer: ComponentLayer) {
 		const oldProps = this.vNode.props ?? EMPTY_PROP_OBJECT;
 		const newProps = vNode.props ?? EMPTY_PROP_OBJECT;
 		const { element } = this;
@@ -51,19 +64,47 @@ class RElement extends RNodeBase {
 			setProperty(element, k, oldProps[k], newProps[k]);
 		}
 		this.vNode = vNode;
-		this.children = diff(this.children, this.vNode.children);
+		this.children = diff(this.children, this.vNode.children, layer);
 	}
 }
-class RArray extends RNodeBase {
+export class RComponent<P extends Record<string, any>> extends RNodeBase {
+	type = "component" as const;
+	layer: ComponentLayer<P>;
+	start = new Text();
+	constructor(public vNode: VComponent<P>, parent: Element, at: number, parentLayer: ComponentLayer | undefined) {
+		super();
+		parent.insertBefore(this.start, parent.childNodes[at] ?? null);
+		this.layer = new ComponentLayer(
+			new RNothing(undefined, parent, at + 1),
+			parentLayer,
+			vNode.type,
+			() => this.vNode.props
+		);
+		this.layer.runUpdate();
+	}
+	position() {
+		return position(this.start);
+	}
+	unmount() {
+		this.layer.unmount();
+		this.start.remove();
+	}
+	update(vNode: VComponent<P>) {
+		this.layer.scheduleUpdate();
+		this.vNode = vNode;
+	}
+}
+
+export class RArray extends RNodeBase {
 	type = "array" as const;
 	children: RNode[];
 	start = new Text();
 	end = new Text();
-	constructor(public vNode: VArray, parent: Element, at: number) {
+	constructor(public vNode: VArray, parent: Element, at: number, layer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.end, parent.childNodes[at] ?? null);
 		parent.insertBefore(this.start, this.end);
-		this.children = vNode.map((v, i) => mount(v, parent, at + i + 1));
+		this.children = vNode.map((v, i) => mount(v, parent, at + i + 1, layer));
 	}
 	position() {
 		return position(this.start);
@@ -75,11 +116,11 @@ class RArray extends RNodeBase {
 		this.end.remove();
 		this.start.remove();
 	}
-	update(vNode: VArray) {
+	update(vNode: VArray, layer: ComponentLayer) {
 		const oldVNode = this.vNode;
 		let i = 0;
 		for (; i < vNode.length && i < oldVNode.length; i++) {
-			this.children[i] = diff(this.children[i], vNode[i]);
+			this.children[i] = diff(this.children[i], vNode[i], layer);
 		}
 		for (; i < oldVNode.length; i++) {
 			this.children[i].unmount();
@@ -87,12 +128,12 @@ class RArray extends RNodeBase {
 		this.children.length = vNode.length;
 		const { parent, at } = this.position();
 		for (; i < vNode.length; i++) {
-			this.children[i] = mount(vNode[i], parent, at + i + 1);
+			this.children[i] = mount(vNode[i], parent, at + i + 1, layer);
 		}
 		this.vNode = vNode;
 	}
 }
-class RText extends RNodeBase {
+export class RText extends RNodeBase {
 	type = "text" as const;
 	element: Text;
 	constructor(public vNode: VText, parent: Element, at: number) {
@@ -116,7 +157,7 @@ class RText extends RNodeBase {
 		this.element = element;
 	}
 }
-class RNothing extends RNodeBase {
+export class RNothing extends RNodeBase {
 	type = "nothing" as const;
 	element = new Text();
 	constructor(public vNode: VNothing, parent: Element, at: number) {
@@ -130,14 +171,17 @@ class RNothing extends RNodeBase {
 		this.element.remove();
 	}
 }
-type RNode = RElement | RArray | RText | RNothing;
+export type RNode = RElement | RComponent<any> | RArray | RText | RNothing;
 
-function mount(vNode: VNode, parent: Element, at: number): RNode {
+function mount(vNode: VNode, parent: Element, at: number, layer: ComponentLayer): RNode {
 	if (isVElement(vNode)) {
-		return new RElement(vNode, parent, at);
+		return new RElement(vNode, parent, at, layer);
+	}
+	if (isVComponent(vNode)) {
+		return new RComponent(vNode, parent, at, layer);
 	}
 	if (isVArray(vNode)) {
-		return new RArray(vNode, parent, at);
+		return new RArray(vNode, parent, at, layer);
 	}
 	if (isVText(vNode)) {
 		return new RText(vNode, parent, at);
@@ -145,16 +189,20 @@ function mount(vNode: VNode, parent: Element, at: number): RNode {
 	return new RNothing(vNode, parent, at);
 }
 
-function diff(r: RNode, newVNode: VNode) {
+export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
 	if (r.vNode === newVNode) {
 		return r;
 	}
 	if (r instanceof RElement && isVElement(newVNode) && r.vNode.type === newVNode.type) {
+		r.update(newVNode, layer);
+		return r;
+	}
+	if (r instanceof RComponent && isVComponent(newVNode) && r.vNode.type === newVNode.type) {
 		r.update(newVNode);
 		return r;
 	}
 	if (r instanceof RArray && isVArray(newVNode)) {
-		r.update(newVNode);
+		r.update(newVNode, layer);
 		return r;
 	}
 	if (r instanceof RText && isVText(newVNode)) {
@@ -166,19 +214,29 @@ function diff(r: RNode, newVNode: VNode) {
 	}
 	const { parent, at } = r.position();
 	r.unmount();
-	return mount(newVNode, parent, at);
+	return mount(newVNode, parent, at, layer);
 }
 
 export function createRoot(container: Element) {
 	container.textContent = "";
-	let r: RNode = new RNothing(undefined, container, 0);
+	let vNode: VNode = undefined;
+	function RootComponent() {
+		return vNode;
+	}
+	const layer = new ComponentLayer(
+		new RNothing(undefined, container, 0),
+		undefined,
+		RootComponent,
+		() => null as any
+	);
 
 	return {
-		render(vNode: VNode) {
-			r = diff(r, vNode);
+		render(nextVNode: VNode) {
+			vNode = nextVNode;
+			layer.runUpdate();
 		},
 		unmount() {
-			r = diff(r, undefined);
+			layer.unmount();
 		},
 	};
 }
