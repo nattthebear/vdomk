@@ -3,15 +3,41 @@
 		"first test": [
 			"<div></div>"
 		],
+		"nothing 1": [
+			""
+		],
+		"nothing 2": [
+			""
+		],
+		"nothing 3": [
+			""
+		],
+		"nothing 4": [
+			""
+		],
+		"text 1": [
+			"12345"
+		],
+		"text 2": [
+			"abcde"
+		],
 		"text 3": [
-			"<div></div>",
-			"",
-			"",
-			"",
-			"",
-			"12345",
-			"abcde",
 			"&lt;div&gt;&lt;/div&gt;"
+		],
+		"children!": [
+			"<div>Hello there!</div>"
+		],
+		"children 2": [
+			"<div><span></span></div>"
+		],
+		"array": [
+			"abcd"
+		],
+		"array 2": [
+			"abcd"
+		],
+		"array 3": [
+			"abc<div></div>d"
 		]
 	}
 }

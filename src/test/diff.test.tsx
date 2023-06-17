@@ -22,10 +22,20 @@ describe("render tests", import.meta.url, (it) => {
 	}
 	doTest("first test", <div />);
 	doTest("nothing 1", null);
-	doTest("nothing 1", undefined);
-	doTest("nothing 1", true);
-	doTest("nothing 1", false);
+	doTest("nothing 2", undefined);
+	doTest("nothing 3", true);
+	doTest("nothing 4", false);
 	doTest("text 1", 12345);
 	doTest("text 2", "abcde");
 	doTest("text 3", "<div></div>");
+	doTest("children!", <div>Hello there!</div>);
+	doTest(
+		"children 2",
+		<div>
+			<span></span>
+		</div>
+	);
+	doTest("array", ["a", "b", "c", "d"]);
+	doTest("array 2", ["ab", "c", null, false, "d"]);
+	doTest("array 3", ["ab", "c", <div />, false, "d"]);
 });

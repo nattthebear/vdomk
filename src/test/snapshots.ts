@@ -7,18 +7,24 @@ let activeTest = "";
 let activeIndex = 0;
 
 export function describe(
-	name: string,
+	suiteName: string,
 	location: string,
 	suite: (it: (name: string, test: () => void) => void) => void
 ) {
 	activeFile = location;
-	activeSuite = name;
-	function it(name: string, test: () => void) {
-		activeTest = name;
+	activeSuite = suiteName;
+	function it(testName: string, test: () => void) {
+		activeTest = testName;
 		activeIndex = 0;
-		baseIt(name, test);
+		baseIt(testName, () => {
+			activeFile = location;
+			activeSuite = suiteName;
+			activeTest = testName;
+			activeIndex = 0;
+			test();
+		});
 	}
-	baseDescribe(name, () => suite(it));
+	baseDescribe(suiteName, () => suite(it));
 }
 
 export function snapshot(value: any) {
