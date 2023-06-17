@@ -1,42 +1,5 @@
 import { setProperty } from "./props";
-
-interface VElement {
-	$type: "$VEl";
-	type: string;
-	props: Record<string, any>;
-	children: VNode;
-}
-type VArray = VNode[];
-type VText = number | string;
-type VNothing = boolean | null | undefined;
-type VNode = VElement | VArray | VText | VNothing;
-
-function isVElement(vNode: VNode): vNode is VElement {
-	return (vNode as any)?.$type === "$VEl";
-}
-const { isArray } = Array;
-function isVArray(vNode: VNode): vNode is VArray {
-	return isArray(vNode);
-}
-function isVText(vNode: VNode): vNode is VText {
-	const t = typeof vNode;
-	return t === "number" || t === "string";
-}
-function isVNothing(vNode: VNode): vNode is VNothing {
-	return vNode == null || typeof vNode === "boolean";
-}
-function vType(vNode: VNode) {
-	if (isVElement(vNode)) {
-		return "element";
-	}
-	if (isVArray(vNode)) {
-		return "array";
-	}
-	if (isVText(vNode)) {
-		return "text";
-	}
-	return "nothing";
-}
+import { VNode, VElement, VArray, VText, VNothing, isVElement, isVArray, isVText, isVNothing } from "./vdom";
 
 function position(child: Node) {
 	const parent: Element = child.parentElement!;
@@ -204,4 +167,18 @@ function diff(r: RNode, newVNode: VNode) {
 	const { parent, at } = r.position();
 	r.unmount();
 	return mount(newVNode, parent, at);
+}
+
+export function createRoot(container: Element) {
+	container.textContent = "";
+	let r: RNode = new RNothing(undefined, container, 0);
+
+	return {
+		render(vNode: VNode) {
+			r = diff(r, vNode);
+		},
+		unmount() {
+			r = diff(r, undefined);
+		},
+	};
 }
