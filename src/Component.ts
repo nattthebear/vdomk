@@ -63,7 +63,7 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 	}
 	unmount() {
 		this.alive = false;
-		this.rNode = diff(this.rNode, undefined, this);
+		this.rNode.unmount();
 	}
 }
 
@@ -74,6 +74,7 @@ export function getCurrentHookState<T>(initializer: () => T) {
 	}
 	return hooks[currentHookIndex++] as T;
 }
-export function hookScheduleUpdate() {
-	currentLayer!.scheduleUpdate();
+export function getHookScheduleUpdate() {
+	const layer = currentLayer!;
+	return () => layer.scheduleUpdate();
 }
