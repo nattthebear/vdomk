@@ -104,7 +104,8 @@ export class RArray extends RNodeBase {
 		super();
 		parent.insertBefore(this.end, parent.childNodes[at] ?? null);
 		parent.insertBefore(this.start, this.end);
-		this.children = vNode.map((v, i) => mount(v, parent, at + i + 1, layer));
+		const offset = parent.childNodes.length - at - 1;
+		this.children = vNode.map((v, i) => mount(v, parent, parent.childNodes.length - offset, layer));
 	}
 	position() {
 		return position(this.start);
@@ -126,9 +127,12 @@ export class RArray extends RNodeBase {
 			this.children[i].unmount();
 		}
 		this.children.length = vNode.length;
-		const { parent, at } = this.position();
-		for (; i < vNode.length; i++) {
-			this.children[i] = mount(vNode[i], parent, at + i + 1, layer);
+		if (i < vNode.length) {
+			const { parent, at } = this.position();
+			const offset = parent.childNodes.length - at - 1;
+			for (; i < vNode.length; i++) {
+				this.children[i] = mount(vNode[i], parent, parent.childNodes.length - offset, layer);
+			}
 		}
 		this.vNode = vNode;
 	}

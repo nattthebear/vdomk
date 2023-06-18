@@ -1,4 +1,4 @@
-import { getCurrentHookState, hookScheduleUpdate } from "./Component";
+import { getCurrentHookState, getHookScheduleUpdate } from "./Component";
 
 const { is } = Object;
 
@@ -14,6 +14,7 @@ export function useRef(initialValue?: any) {
 export type UpdateState<S> = (newValue: S | ((oldValue: S) => S)) => void;
 export type UseStateResult<S> = [S, UpdateState<S>];
 export function useState<S>(initialValue: S) {
+	const hookScheduleUpdate = getHookScheduleUpdate();
 	return getCurrentHookState(() => {
 		const result: UseStateResult<S> = [
 			initialValue,
@@ -37,6 +38,7 @@ export function useState<S>(initialValue: S) {
 export type Reducer<S, A> = (prevState: S, action: A) => S;
 export type UseReducerResult<S, A> = [S, (action: A) => void];
 export function useReducer<S, A>(reducer: Reducer<S, A>, initialState: S) {
+	const hookScheduleUpdate = getHookScheduleUpdate();
 	return getCurrentHookState(() => {
 		const result: UseReducerResult<S, A> = [
 			initialState,
@@ -74,7 +76,7 @@ export function useMemo<A extends any[], R>(callback: (...args: A) => R, deps: A
 	return store.value as R;
 }
 
-export function useEffect<A extends any[]>(callback: (...args: A) => (() => void) | undefined, deps: A) {
+export function useEffect<A extends any[]>(callback: (...args: A) => () => void | undefined, deps: A) {
 	// TODO
 	setTimeout(() => callback(...deps), 0);
 }

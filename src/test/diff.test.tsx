@@ -59,4 +59,5 @@ describe("render tests", import.meta.url, (it) => {
 			<Pomponent foo="wow" />
 		</span>
 	);
+	doTest("nested arrays", ["a", "b", ["c", "d"], "e"]);
 });

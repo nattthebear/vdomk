@@ -53,6 +53,9 @@
 		],
 		"component with props": [
 			"<span><div>wow</div></span>"
+		],
+		"nested arrays": [
+			"abcde"
 		]
 	}
 }

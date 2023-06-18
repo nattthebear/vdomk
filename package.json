@@ -4,6 +4,8 @@
 	"description": "",
 	"type": "module",
 	"exports": "./build/index.js",
+	"module": "./build/index.js",
+	"types": "./build/index.d.ts",
 	"scripts": {
 		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx",
 		"prettier": "prettier --write src/**/*.ts",
