@@ -114,11 +114,9 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 export class RArray extends RNodeBase {
 	children: RNode[];
 	element = new Text();
-	end = new Text();
 	constructor(public vNode: VArray, parent: Element, at: number, layer: ComponentLayer, public inSvg: boolean) {
 		super();
-		parent.insertBefore(this.end, parent.childNodes[at] ?? null);
-		parent.insertBefore(this.element, this.end);
+		parent.insertBefore(this.element, parent.childNodes[at] ?? null);
 		const offset = parent.childNodes.length - at - 1;
 		this.children = vNode.map((v) => mount(v, parent, parent.childNodes.length - offset, layer, inSvg));
 	}
@@ -126,7 +124,6 @@ export class RArray extends RNodeBase {
 		for (const child of this.children) {
 			child.unmount();
 		}
-		this.end.remove();
 		this.element.remove();
 	}
 	update(vNode: VNode, layer: ComponentLayer) {
