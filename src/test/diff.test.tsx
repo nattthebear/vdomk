@@ -1,6 +1,6 @@
 import { describe, snapshot } from "./snapshots";
 import { JSDOM } from "jsdom";
-import { createRoot } from "../diff";
+import { createRoot } from "../root";
 import { VNode, VElement } from "../vdom";
 import { h } from "../createElement";
 

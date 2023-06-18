@@ -14,14 +14,7 @@ import {
 	isVComponent,
 } from "./vdom";
 
-function position(child: Node) {
-	const parent: Element = child.parentElement!;
-	let at = 0;
-	for (let node = child.previousSibling; node; node = node.previousSibling) {
-		at++;
-	}
-	return { parent, at };
-}
+export const SVG_NS = "http://www.w3.org/2000/svg";
 
 abstract class RNodeBase {
 	abstract vNode: VNode;
@@ -42,14 +35,21 @@ const EMPTY_PROP_OBJECT: any = {};
 export class RElement extends RNodeBase {
 	children: RNode;
 	element: Element;
-	constructor(public vNode: VElement, parent: Element, at: number, layer: ComponentLayer) {
+	selfInSvg: boolean;
+	childrenInSvg: boolean;
+	constructor(public vNode: VElement, parent: Element, at: number, layer: ComponentLayer, inSvg: boolean) {
 		super();
-		const element = document.createElement(vNode.type);
+		const { type } = vNode;
+		inSvg ||= type === "svg";
+		const element = inSvg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
+		this.selfInSvg = inSvg;
+		inSvg &&= type !== "foreignObject";
+		this.childrenInSvg = inSvg;
 		parent.insertBefore(element, parent.childNodes[at] ?? null);
 		this.element = element;
-		this.children = mount(vNode.children, element, 0, layer);
+		this.children = mount(vNode.children, element, 0, layer, inSvg);
 		for (const k in vNode.props) {
-			setProperty(element, k, undefined, vNode.props[k]);
+			setProperty(element, k, undefined, vNode.props[k], this.selfInSvg);
 		}
 	}
 	unmount() {
@@ -62,31 +62,38 @@ export class RElement extends RNodeBase {
 		}
 		const oldProps = this.vNode.props ?? EMPTY_PROP_OBJECT;
 		const newProps = vNode.props ?? EMPTY_PROP_OBJECT;
-		const { element } = this;
+		const { element, selfInSvg, childrenInSvg } = this;
 		for (const k in oldProps) {
 			if (!Object.prototype.hasOwnProperty.call(newProps, k)) {
-				setProperty(element, k, oldProps[k], undefined);
+				setProperty(element, k, oldProps[k], undefined, selfInSvg);
 			}
 		}
 		for (const k in newProps) {
-			setProperty(element, k, oldProps[k], newProps[k]);
+			setProperty(element, k, oldProps[k], newProps[k], selfInSvg);
 		}
 		this.vNode = vNode;
-		this.children = diff(this.children, this.vNode.children, layer);
+		this.children = diff(this.children, this.vNode.children, layer, childrenInSvg);
 		return true;
 	}
 }
 export class RComponent<P extends Record<string, any>> extends RNodeBase {
 	layer: ComponentLayer<P>;
 	element = new Text();
-	constructor(public vNode: VComponent<P>, parent: Element, at: number, parentLayer: ComponentLayer | undefined) {
+	constructor(
+		public vNode: VComponent<P>,
+		parent: Element,
+		at: number,
+		parentLayer: ComponentLayer | undefined,
+		inSvg: boolean
+	) {
 		super();
 		parent.insertBefore(this.element, parent.childNodes[at] ?? null);
 		this.layer = new ComponentLayer(
 			new RNothing(undefined, parent, at + 1),
 			parentLayer,
 			vNode.type,
-			() => this.vNode.props
+			() => this.vNode.props,
+			inSvg
 		);
 		this.layer.runUpdate();
 	}
@@ -108,12 +115,12 @@ export class RArray extends RNodeBase {
 	children: RNode[];
 	element = new Text();
 	end = new Text();
-	constructor(public vNode: VArray, parent: Element, at: number, layer: ComponentLayer) {
+	constructor(public vNode: VArray, parent: Element, at: number, layer: ComponentLayer, public inSvg: boolean) {
 		super();
 		parent.insertBefore(this.end, parent.childNodes[at] ?? null);
 		parent.insertBefore(this.element, this.end);
 		const offset = parent.childNodes.length - at - 1;
-		this.children = vNode.map((v) => mount(v, parent, parent.childNodes.length - offset, layer));
+		this.children = vNode.map((v) => mount(v, parent, parent.childNodes.length - offset, layer, inSvg));
 	}
 	unmount() {
 		for (const child of this.children) {
@@ -126,10 +133,11 @@ export class RArray extends RNodeBase {
 		if (!isVArray(vNode)) {
 			return false;
 		}
+		const { inSvg } = this;
 		const oldVNode = this.vNode;
 		let i = 0;
 		for (; i < vNode.length && i < oldVNode.length; i++) {
-			this.children[i] = diff(this.children[i], vNode[i], layer);
+			this.children[i] = diff(this.children[i], vNode[i], layer, inSvg);
 		}
 		for (; i < oldVNode.length; i++) {
 			this.children[i].unmount();
@@ -139,7 +147,7 @@ export class RArray extends RNodeBase {
 			const { parent, at } = this.position();
 			const offset = parent.childNodes.length - at - 1;
 			for (; i < vNode.length; i++) {
-				this.children[i] = mount(vNode[i], parent, parent.childNodes.length - offset, layer);
+				this.children[i] = mount(vNode[i], parent, parent.childNodes.length - offset, layer, inSvg);
 			}
 		}
 		this.vNode = vNode;
@@ -189,15 +197,15 @@ export class RNothing extends RNodeBase {
 }
 export type RNode = RElement | RComponent<any> | RArray | RText | RNothing;
 
-function mount(vNode: VNode, parent: Element, at: number, layer: ComponentLayer): RNode {
+function mount(vNode: VNode, parent: Element, at: number, layer: ComponentLayer, inSvg: boolean): RNode {
 	if (isVElement(vNode)) {
-		return new RElement(vNode, parent, at, layer);
+		return new RElement(vNode, parent, at, layer, inSvg);
 	}
 	if (isVComponent(vNode)) {
-		return new RComponent(vNode, parent, at, layer);
+		return new RComponent(vNode, parent, at, layer, inSvg);
 	}
 	if (isVArray(vNode)) {
-		return new RArray(vNode, parent, at, layer);
+		return new RArray(vNode, parent, at, layer, inSvg);
 	}
 	if (isVText(vNode)) {
 		return new RText(vNode, parent, at);
@@ -205,7 +213,7 @@ function mount(vNode: VNode, parent: Element, at: number, layer: ComponentLayer)
 	return new RNothing(vNode, parent, at);
 }
 
-export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
+export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer, inSvg: boolean) {
 	if (r.vNode === newVNode) {
 		return r;
 	}
@@ -214,29 +222,5 @@ export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
 	}
 	const { parent, at } = r.position();
 	r.unmount();
-	return mount(newVNode, parent, at, layer);
-}
-
-export function createRoot(container: Element) {
-	container.textContent = "";
-	let vNode: VNode = undefined;
-	function RootComponent() {
-		return vNode;
-	}
-	const layer = new ComponentLayer(
-		new RNothing(undefined, container, 0),
-		undefined,
-		RootComponent,
-		() => null as any
-	);
-
-	return {
-		render(nextVNode: VNode) {
-			vNode = nextVNode;
-			layer.runUpdate();
-		},
-		unmount() {
-			layer.unmount();
-		},
-	};
+	return mount(newVNode, parent, at, layer, inSvg);
 }

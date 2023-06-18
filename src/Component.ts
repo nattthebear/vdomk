@@ -34,7 +34,8 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 		public rNode: RNode,
 		public parent: ComponentLayer | undefined,
 		public component: (props: P) => VNode,
-		public propsAccessor: () => P
+		public propsAccessor: () => P,
+		public inSvg: boolean
 	) {
 		this.depth = parent ? parent.depth + 1 : 0;
 	}
@@ -51,7 +52,7 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 			currentLayer = undefined;
 		}
 		this.pending = false;
-		this.rNode = diff(this.rNode, newVNode, this);
+		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
 	}
 	scheduleUpdate() {
 		if (!this.alive || this.pending) {
