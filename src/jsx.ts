@@ -9,6 +9,7 @@
 
 // JSX Types adapted from preact...
 
+import type { Component } from "./Component";
 import type { VNode } from "./vdom";
 
 type Booleanish = boolean | "true" | "false";
@@ -16,8 +17,9 @@ type Booleanish = boolean | "true" | "false";
 interface PreactDOMAttributes {}
 interface ClassAttributes<T> {
 	children?: VNode;
+	ref?: (value: T | null) => void;
 }
-type ComponentType<P> = (props: P) => VNode;
+type ComponentType<P extends Record<string, any>> = Component<P>;
 
 declare global {
 	namespace JSX {
@@ -26,14 +28,9 @@ declare global {
 		export interface IntrinsicAttributes {
 			key?: any;
 		}
-
-		export type ElementType<P = any> =
-			| {
-					[K in keyof IntrinsicElements]: P extends IntrinsicElements[K] ? K : never;
-			  }[keyof IntrinsicElements]
-			| ComponentType<P>;
+		export type ElementType = keyof IntrinsicElements | Component<any>;
 		export type Element = VNode;
-		export type ElementClass = ComponentType<any>;
+		export type ElementClass = never;
 
 		export interface ElementAttributesProperty {
 			props: any;

@@ -47,7 +47,7 @@ export class RElement extends RNodeBase {
 		this.childrenInSvg = inSvg;
 		parent.insertBefore(element, parent.childNodes[at] ?? null);
 		this.element = element;
-		this.children = mount(vNode.children, element, 0, layer, inSvg);
+		this.children = mount(vNode.props.children, element, 0, layer, inSvg);
 		for (const k in vNode.props) {
 			setProperty(element, k, undefined, vNode.props[k], this.selfInSvg);
 		}
@@ -72,7 +72,7 @@ export class RElement extends RNodeBase {
 			setProperty(element, k, oldProps[k], newProps[k], selfInSvg);
 		}
 		this.vNode = vNode;
-		this.children = diff(this.children, this.vNode.children, layer, childrenInSvg);
+		this.children = diff(this.children, vNode.props.children, layer, childrenInSvg);
 		return true;
 	}
 }
@@ -95,7 +95,6 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 			() => this.vNode.props,
 			inSvg
 		);
-		this.layer.runUpdate();
 	}
 	unmount() {
 		this.layer.unmount();

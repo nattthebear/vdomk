@@ -1,12 +1,13 @@
+import type { Component } from "./Component";
+
 export interface VElement {
 	$type: "$VEl";
 	type: string;
 	props: Record<string, any>;
-	children: VNode;
 }
 export interface VComponent<P extends Record<string, any> = any> {
 	$type: "$VCo";
-	type: (props: P) => VNode;
+	type: Component<P>;
 	props: P;
 }
 export type VArray = VNode[];

@@ -4,6 +4,14 @@ export function setProperty(element: Element, key: string, oldValue: any, newVal
 	if (oldValue === newValue) {
 		return;
 	}
+	if (key === "children") {
+		return;
+	}
+	if (key === "ref") {
+		oldValue?.(null);
+		newValue?.(element);
+		return;
+	}
 
 	let match: RegExpMatchArray | null;
 	if ((match = key.match(EVENT_REGEX))) {

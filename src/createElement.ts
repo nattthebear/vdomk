@@ -1,4 +1,5 @@
 import { VArray, VComponent, VElement, VNode } from "./vdom";
+import type { Component } from "./Component";
 
 const EMPTY_ARRAY: never[] = [];
 const EMPTY_OBJECT: Record<string, never> = {};
@@ -6,19 +7,18 @@ const EMPTY_OBJECT: Record<string, never> = {};
 export const Fragment = Symbol("vdomk.Fragment");
 
 export function h(
-	type: ((props: any) => VNode) | string | typeof Fragment,
-	argProps: Record<string, any> | null,
-	...argChildren: any[]
+	type: Component<any> | string | typeof Fragment,
+	props: Record<string, any> | null,
+	...children: any[]
 ): VElement | VComponent | VArray {
 	if (type === Fragment) {
-		const children: VArray = argChildren.length > 0 ? argChildren : argProps?.children ?? EMPTY_ARRAY;
-		return children;
+		const ret: VArray = children.length > 0 ? children : props?.children ?? EMPTY_ARRAY;
+		return ret;
+	}
+	if (children.length > 0) {
+		props = { ...props, children: children };
 	}
 	if (typeof type === "function") {
-		let props = argProps;
-		if (argChildren.length > 0) {
-			props = { ...props, children: argChildren };
-		}
 		const ret: VComponent = {
 			$type: "$VCo",
 			type,
@@ -26,13 +26,10 @@ export function h(
 		};
 		return ret;
 	}
-	const { children, ...props } = argProps ?? EMPTY_OBJECT;
 	const ret: VElement = {
 		$type: "$VEl",
 		type,
-		props,
-		children: argChildren.length > 0 ? argChildren : children ?? EMPTY_ARRAY,
+		props: props ?? EMPTY_OBJECT,
 	};
-
 	return ret;
 }

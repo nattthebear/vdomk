@@ -1,6 +1,19 @@
 import { Heap } from "./Heap";
 import { RNode, diff } from "./diff";
-import { VNode } from "./vdom";
+import type { VNode } from "./vdom";
+
+export interface Hooks {
+	/** Registers a function to be called when this component is unmounted. */
+	cleanup(cb: () => void): void;
+	/** Calls a function in the effect phase after this render completes. */
+	effect(cb: () => void): void;
+	/** Schedules a rerender of this component. */
+	scheduleUpdate(): void;
+}
+
+export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNode;
+export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
+export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 
 const defer = Promise.prototype.then.bind(Promise.resolve());
 const pendingUpdates = new Heap(compareLayers);
@@ -22,35 +35,53 @@ function deferFlush() {
 	});
 }
 
-let currentLayer: ComponentLayer | undefined;
-let currentHookIndex = 0;
-
 export class ComponentLayer<P extends Record<string, any> = any> {
 	depth: number;
 	alive = true;
 	pending = true;
-	hookState: any[] | undefined;
+	cleanupQueue: (() => void)[] | undefined;
+	hooks: Hooks;
+	component: OPC<P>;
 	constructor(
 		public rNode: RNode,
 		public parent: ComponentLayer | undefined,
-		public component: (props: P) => VNode,
+		component: Component<P>,
 		public propsAccessor: () => P,
 		public inSvg: boolean
 	) {
 		this.depth = parent ? parent.depth + 1 : 0;
-	}
-	getHookState() {
-		return (this.hookState ??= []);
+		this.hooks = {
+			cleanup: (cb) => {
+				if (this.alive) {
+					(this.cleanupQueue ??= []).push(cb);
+				}
+			},
+			effect: (cb) => {
+				// TODO
+				setTimeout(cb, 0);
+			},
+			scheduleUpdate: () => {
+				this.scheduleUpdate();
+			},
+		};
+		let newVNode: VNode;
+		const res = component(propsAccessor(), this.hooks);
+		if (typeof res === "function") {
+			this.component = res;
+			newVNode = res(propsAccessor(), this.hooks);
+		} else {
+			this.component = component as OPC<P>;
+			newVNode = res;
+		}
+		this.finishUpdate(newVNode);
 	}
 	runUpdate() {
-		currentLayer = this;
-		currentHookIndex = 0;
 		let newVNode: VNode;
-		try {
-			newVNode = (0, this.component)(this.propsAccessor());
-		} finally {
-			currentLayer = undefined;
-		}
+		newVNode = (0, this.component)(this.propsAccessor(), this.hooks);
+		this.pending = false;
+		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
+	}
+	finishUpdate(newVNode: VNode) {
 		this.pending = false;
 		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
 	}
@@ -64,18 +95,12 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 	}
 	unmount() {
 		this.alive = false;
+		const { cleanupQueue } = this;
+		if (cleanupQueue) {
+			for (let i = cleanupQueue.length - 1; i >= 0; i--) {
+				cleanupQueue[i]();
+			}
+		}
 		this.rNode.unmount();
 	}
-}
-
-export function getCurrentHookState<T>(initializer: () => T) {
-	const hooks = currentLayer!.getHookState();
-	if (currentHookIndex >= hooks.length) {
-		return (hooks[currentHookIndex++] = initializer());
-	}
-	return hooks[currentHookIndex++] as T;
-}
-export function getHookScheduleUpdate() {
-	const layer = currentLayer!;
-	return () => layer.scheduleUpdate();
 }
