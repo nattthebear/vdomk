@@ -12,21 +12,44 @@ import {
 	isVText,
 	isVNothing,
 	isVComponent,
+	KeyType,
+	getVKey,
 } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
+const EMPTY_PROP_OBJECT: any = {};
+const { max, min } = Math;
 
 abstract class RNodeBase {
 	abstract vNode: VNode;
 	abstract element: ChildNode;
+	end: ChildNode | undefined;
 	abstract update(vNode: VNode, layer: ComponentLayer): boolean;
 	unmount(removeSelf: boolean) {
 		if (removeSelf) {
 			this.element.remove();
 		}
 	}
+	moveTo(adjacent: Node | null) {
+		const parent = this.element.parentElement!;
+		const { element, end } = this;
+		if (!end) {
+			element.remove();
+			parent.insertBefore(element, adjacent);
+		} else {
+			for (let curr: ChildNode = element; ; ) {
+				const next = curr.nextSibling;
+				curr.remove();
+				parent.insertBefore(curr, adjacent);
+				if (curr === end) {
+					break;
+				}
+				curr = next!;
+			}
+		}
+	}
 }
-const EMPTY_PROP_OBJECT: any = {};
+
 export class RElement extends RNodeBase {
 	children: RNode;
 	element: Element;
@@ -49,6 +72,8 @@ export class RElement extends RNodeBase {
 	}
 	unmount(removeSelf: boolean) {
 		this.children.unmount(true);
+		// Most props don't need to be unset when unmounting
+		this.vNode.props.ref?.(null);
 		super.unmount(removeSelf);
 	}
 	update(vNode: VNode, layer: ComponentLayer) {
@@ -74,6 +99,7 @@ export class RElement extends RNodeBase {
 export class RComponent<P extends Record<string, any>> extends RNodeBase {
 	layer: ComponentLayer<P>;
 	element = new Text();
+	end = new Text();
 	constructor(
 		public vNode: VComponent<P>,
 		parent: Element,
@@ -90,6 +116,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 			() => this.vNode.props,
 			inSvg
 		);
+		parent.insertBefore(this.end, adjacent);
 	}
 	unmount(removeSelf: boolean) {
 		this.layer.unmount();
@@ -104,7 +131,6 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		return true;
 	}
 }
-
 export class RArray extends RNodeBase {
 	children: RNode[];
 	element = new Text();
@@ -131,23 +157,90 @@ export class RArray extends RNodeBase {
 		if (!isVArray(vNode)) {
 			return false;
 		}
-		const { inSvg } = this;
+		const { inSvg, children } = this;
 		const oldVNode = this.vNode;
-		let i = 0;
-		for (; i < vNode.length && i < oldVNode.length; i++) {
-			this.children[i] = diff(this.children[i], vNode[i], layer, inSvg);
+		const parent = this.element.parentElement!;
+
+		interface NeedsNew {
+			adjacent: ChildNode;
+			key: KeyType;
+			vNode: VNode;
+			index: number;
 		}
-		for (; i < oldVNode.length; i++) {
-			this.children[i].unmount(true);
+
+		let unsatisfied: NeedsNew[] | undefined;
+		let reusable: Map<KeyType, RNode> | undefined;
+		const oldLength = oldVNode.length;
+		const newLength = vNode.length;
+		const minLength = min(oldLength, newLength);
+
+		function handleNew(adjacent: ChildNode, key: KeyType, vNode: VNode, index: number, shouldPush: boolean) {
+			if (key !== undefined) {
+				const toMove = reusable?.get(key);
+				if (toMove) {
+					reusable!.delete(key);
+					toMove.moveTo(adjacent);
+					children[index] = diff(toMove, vNode, layer, inSvg);
+					return;
+				}
+				if (shouldPush) {
+					const savedAdjacent = new Text();
+					parent.insertBefore(savedAdjacent, adjacent);
+					(unsatisfied ??= []).push({ adjacent: savedAdjacent, key, vNode, index });
+					return;
+				}
+			}
+			children[index] = mount(vNode, parent, adjacent, layer, inSvg);
 		}
-		this.children.length = vNode.length;
-		if (i < vNode.length) {
-			const { end } = this;
-			const parent = end.parentElement!;
-			for (; i < vNode.length; i++) {
-				this.children[i] = mount(vNode[i], parent, end, layer, inSvg);
+		function handleOld(rNode: RNode, key: KeyType) {
+			if (key !== undefined) {
+				(reusable ??= new Map<KeyType, RNode>()).set(key, rNode);
+			} else {
+				rNode.unmount(true);
 			}
 		}
+
+		let i = 0;
+		for (; i < minLength; i++) {
+			const rNode = children[i];
+			const oldVChild = this.vNode[i];
+			const newVChild = vNode[i];
+			const oldKey = getVKey(oldVChild);
+			const newKey = getVKey(newVChild);
+
+			if (oldKey === newKey) {
+				children[i] = diff(rNode, newVChild, layer, inSvg);
+			} else {
+				handleNew(rNode.element, newKey, newVChild, i, true);
+				handleOld(rNode, oldKey);
+			}
+		}
+		for (; i < oldLength; i++) {
+			const rNode = children[i];
+			const oldVChild = this.vNode[i];
+			const oldKey = getVKey(oldVChild);
+			handleOld(rNode, oldKey);
+		}
+		children.length = newLength;
+		for (; i < newLength; i++) {
+			const newVChild = vNode[i];
+			const newKey = getVKey(newVChild);
+			handleNew(this.end, newKey, newVChild, i, false);
+		}
+
+		if (unsatisfied) {
+			for (const { adjacent, key, vNode, index } of unsatisfied) {
+				handleNew(adjacent, key, vNode, index, false);
+				adjacent.remove();
+			}
+		}
+
+		if (reusable) {
+			for (const rNode of reusable.values()) {
+				rNode.unmount(true);
+			}
+		}
+
 		this.vNode = vNode;
 		return true;
 	}

@@ -1,13 +1,16 @@
 import type { Component } from "./Component";
 
+export type KeyType = string | number | symbol | null | undefined;
 export interface VElement {
 	$type: "$VEl";
 	type: string;
+	key: KeyType;
 	props: Record<string, any>;
 }
 export interface VComponent<P extends Record<string, any> = any> {
 	$type: "$VCo";
 	type: Component<P>;
+	key: KeyType;
 	props: P;
 }
 export type VArray = VNode[];

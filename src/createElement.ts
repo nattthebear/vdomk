@@ -22,6 +22,7 @@ export function h(
 		const ret: VComponent = {
 			$type: "$VCo",
 			type,
+			key: props?.key,
 			props,
 		};
 		return ret;
@@ -29,6 +30,7 @@ export function h(
 	const ret: VElement = {
 		$type: "$VEl",
 		type,
+		key: props?.key,
 		props: props ?? EMPTY_OBJECT,
 	};
 	return ret;
