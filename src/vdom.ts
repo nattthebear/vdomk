@@ -35,3 +35,6 @@ export function isVText(vNode: VNode): vNode is VText {
 export function isVNothing(vNode: VNode): vNode is VNothing {
 	return vNode == null || typeof vNode === "boolean";
 }
+export function getVKey(vNode: VNode): KeyType {
+	return (vNode as any)?.key;
+}
