@@ -1,13 +1,4 @@
-// import {
-// 	ClassAttributes,
-// 	Component,
-// 	ComponentChild,
-// 	ComponentType,
-// 	FunctionComponent,
-// 	VNode
-// } from './index';
-
-// JSX Types adapted from preact...
+// JSX Types adapted from preact
 
 import type { Component } from "./Component";
 import type { VNode } from "./vdom";

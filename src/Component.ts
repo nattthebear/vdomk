@@ -11,7 +11,18 @@ export interface Hooks {
 	scheduleUpdate(): void;
 }
 
+/**
+ * One Phase Component.  Similar to a React hookless stateless component.
+ * The provided function is called for each rerender.
+ * Hooks may be used, but `cleanup` doesn't make much sense.
+ */
 export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNode;
+/**
+ * Two Phase Component.  The provided function is called once on mount,
+ * and then the function it returns is called for each rerender.
+ * The provided function is called for each rerender.
+ * Hooks are fully supported, but `cleanup` only makes sense on mount.
+ */
 export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
 export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 

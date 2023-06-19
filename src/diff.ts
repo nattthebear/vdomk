@@ -125,6 +125,7 @@ export class RArray extends RNodeBase {
 		for (const child of this.children) {
 			child.unmount(true);
 		}
+		this.end.remove();
 		super.unmount(removeSelf);
 	}
 	update(vNode: VNode, layer: ComponentLayer) {
