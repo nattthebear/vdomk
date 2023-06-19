@@ -9,7 +9,7 @@ export function createRoot(container: Element) {
 		return vNode;
 	}
 	const layer = new ComponentLayer(
-		new RNothing(undefined, container, 0),
+		new RNothing(undefined, container, null),
 		undefined,
 		RootComponent,
 		() => null as any,

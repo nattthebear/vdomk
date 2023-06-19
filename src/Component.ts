@@ -101,6 +101,6 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 				cleanupQueue[i]();
 			}
 		}
-		this.rNode.unmount();
+		this.rNode.unmount(true);
 	}
 }
