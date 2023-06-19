@@ -1,7 +1,7 @@
 import { describe, snapshot } from "./snapshots";
 import { JSDOM } from "jsdom";
 import { createRoot } from "../root";
-import { VNode, VElement } from "../vdom";
+import { VNode } from "../vdom";
 import { h } from "../createElement";
 
 describe("render tests", import.meta.url, (it) => {

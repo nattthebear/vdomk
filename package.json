@@ -1,11 +1,14 @@
 {
 	"name": "vdomk",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"description": "",
 	"type": "module",
 	"exports": "./build/index.js",
 	"module": "./build/index.js",
 	"types": "./build/index.d.ts",
+	"files": [
+		"./build/**"
+	],
 	"scripts": {
 		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx",
 		"prettier": "prettier --write src/**/*.ts",
