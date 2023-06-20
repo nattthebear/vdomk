@@ -14,9 +14,8 @@ abstract class RNodeBase {
 		}
 	}
 }
-const EMPTY_PROP_OBJECT: any = {};
 export class RElement extends RNodeBase {
-	children: RNode;
+	children: RNode | undefined;
 	element: Element;
 	selfInSvg: boolean;
 	childrenInSvg: boolean;
@@ -30,24 +29,28 @@ export class RElement extends RNodeBase {
 		this.childrenInSvg = inSvg;
 		parent.insertBefore(element, adjacent);
 		this.element = element;
-		this.children = mount(vNode.props.children, element, null, layer, inSvg);
-		for (const k in vNode.props) {
-			setProperty(element, k, undefined, vNode.props[k], this.selfInSvg);
+		const { props } = vNode;
+		for (const k in props) {
+			setProperty(element, k, undefined, props[k], this.selfInSvg);
+		}
+		const { children } = props;
+		if (children !== undefined) {
+			this.children = mount(children, element, null, layer, inSvg);
 		}
 	}
 	unmount(removeSelf: boolean) {
-		this.children.unmount(true);
+		this.children?.unmount(true);
 		super.unmount(removeSelf);
 	}
 	update(vNode: VNode, layer: ComponentLayer) {
 		if (!isVElement(vNode) || this.vNode.type !== vNode.type) {
 			return false;
 		}
-		const oldProps = this.vNode.props ?? EMPTY_PROP_OBJECT;
-		const newProps = vNode.props ?? EMPTY_PROP_OBJECT;
+		const oldProps = this.vNode.props;
+		const newProps = vNode.props;
 		const { element, selfInSvg, childrenInSvg } = this;
 		for (const k in oldProps) {
-			if (!Object.prototype.hasOwnProperty.call(newProps, k)) {
+			if (!(k in newProps)) {
 				setProperty(element, k, oldProps[k], undefined, selfInSvg);
 			}
 		}
@@ -55,7 +58,15 @@ export class RElement extends RNodeBase {
 			setProperty(element, k, oldProps[k], newProps[k], selfInSvg);
 		}
 		this.vNode = vNode;
-		this.children = diff(this.children, vNode.props.children, layer, childrenInSvg);
+		const { children } = newProps;
+		if (this.children && children !== undefined) {
+			this.children = diff(this.children, children, layer, childrenInSvg);
+		} else if (this.children) {
+			this.children.unmount(true);
+			this.children = undefined;
+		} else if (children !== undefined) {
+			this.children = mount(children, element, null, layer, childrenInSvg);
+		}
 		return true;
 	}
 }
