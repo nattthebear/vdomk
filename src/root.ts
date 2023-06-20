@@ -1,5 +1,5 @@
 import { ComponentLayer } from "./Component";
-import { RNothing, SVG_NS } from "./diff";
+import { RText, SVG_NS } from "./diff";
 import { VNode } from "./vdom";
 
 export function createRoot(container: Element) {
@@ -9,7 +9,7 @@ export function createRoot(container: Element) {
 		return vNode;
 	}
 	const layer = new ComponentLayer(
-		new RNothing(undefined, container, null),
+		new RText(undefined, container, null),
 		undefined,
 		RootComponent,
 		() => null as any,

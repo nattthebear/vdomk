@@ -1,18 +1,6 @@
 import { ComponentLayer } from "./Component";
 import { setProperty } from "./props";
-import {
-	VNode,
-	VElement,
-	VComponent,
-	VArray,
-	VText,
-	VNothing,
-	isVElement,
-	isVArray,
-	isVText,
-	isVNothing,
-	isVComponent,
-} from "./vdom";
+import { VNode, VElement, VComponent, VArray, VText, isVElement, isVArray, isVText, isVComponent } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -84,7 +72,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		super();
 		parent.insertBefore(this.element, adjacent);
 		this.layer = new ComponentLayer(
-			new RNothing(undefined, parent, adjacent),
+			new RText(undefined, parent, adjacent),
 			parentLayer,
 			vNode.type,
 			() => this.vNode.props,
@@ -153,11 +141,17 @@ export class RArray extends RNodeBase {
 		return true;
 	}
 }
+function toText(vNode: VText) {
+	if (vNode == null || typeof vNode === "boolean") {
+		return "";
+	}
+	return String(vNode);
+}
 export class RText extends RNodeBase {
 	element: Text;
 	constructor(public vNode: VText, parent: Element, adjacent: Node | null) {
 		super();
-		const element = new Text(String(vNode));
+		const element = new Text(toText(vNode));
 		parent.insertBefore(element, adjacent);
 		this.element = element;
 	}
@@ -165,30 +159,12 @@ export class RText extends RNodeBase {
 		if (!isVText(vNode)) {
 			return false;
 		}
-		const oldElement = this.element;
-		const element = new Text(String(vNode));
-		oldElement.parentElement!.insertBefore(element, oldElement);
-		oldElement.remove();
-		this.vNode = vNode;
-		this.element = element;
-		return true;
-	}
-}
-export class RNothing extends RNodeBase {
-	element = new Text();
-	constructor(public vNode: VNothing, parent: Element, adjacent: Node | null) {
-		super();
-		parent.insertBefore(this.element, adjacent);
-	}
-	update(vNode: VNode) {
-		if (!isVNothing(vNode)) {
-			return false;
-		}
+		this.element.nodeValue = toText(vNode);
 		this.vNode = vNode;
 		return true;
 	}
 }
-export type RNode = RElement | RComponent<any> | RArray | RText | RNothing;
+export type RNode = RElement | RComponent<any> | RArray | RText;
 
 function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer, inSvg: boolean): RNode {
 	if (isVElement(vNode)) {
@@ -200,10 +176,7 @@ function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: Comp
 	if (isVArray(vNode)) {
 		return new RArray(vNode, parent, adjacent, layer, inSvg);
 	}
-	if (isVText(vNode)) {
-		return new RText(vNode, parent, adjacent);
-	}
-	return new RNothing(vNode, parent, adjacent);
+	return new RText(vNode, parent, adjacent);
 }
 
 export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer, inSvg: boolean) {
