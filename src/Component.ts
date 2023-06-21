@@ -1,5 +1,5 @@
-import { Heap } from "./Heap";
 import { RNode, diff } from "./diff";
+import type { RootComponentFunctions } from "./root";
 import type { VNode } from "./vdom";
 
 export interface Hooks {
@@ -26,26 +26,6 @@ export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNo
 export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
 export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 
-const defer = Promise.prototype.then.bind(Promise.resolve());
-const pendingUpdates = new Heap(compareLayers);
-let updateCount = 0;
-function compareLayers(x: ComponentLayer, y: ComponentLayer) {
-	return x.depth < y.depth;
-}
-
-function deferFlush() {
-	const updateNumber = ++updateCount;
-	defer(() => {
-		if (updateNumber !== updateCount) {
-			return;
-		}
-		let layer: ComponentLayer | undefined;
-		while ((layer = pendingUpdates.remove())) {
-			layer.runUpdate();
-		}
-	});
-}
-
 export class ComponentLayer<P extends Record<string, any> = any> {
 	depth: number;
 	alive = true;
@@ -56,6 +36,7 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 	constructor(
 		public rNode: RNode,
 		public parent: ComponentLayer | undefined,
+		public root: RootComponentFunctions,
 		component: Component<P>,
 		public propsAccessor: () => P,
 		public inSvg: boolean
@@ -67,10 +48,7 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 					(this.cleanupQueue ??= []).push(cb);
 				}
 			},
-			effect: (cb) => {
-				// TODO
-				setTimeout(cb, 0);
-			},
+			effect: this.root.enqueueEffect,
 			scheduleUpdate: () => {
 				this.scheduleUpdate();
 			},
@@ -86,13 +64,12 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 		}
 		this.finishUpdate(newVNode);
 	}
-	runUpdate() {
-		let newVNode: VNode;
-		newVNode = (0, this.component)(this.propsAccessor(), this.hooks);
-		this.pending = false;
-		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
+	runUpdate(force: boolean) {
+		if (this.alive && (this.pending || force)) {
+			this.finishUpdate((0, this.component)(this.propsAccessor(), this.hooks));
+		}
 	}
-	finishUpdate(newVNode: VNode) {
+	private finishUpdate(newVNode: VNode) {
 		this.pending = false;
 		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
 	}
@@ -101,8 +78,7 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 			return;
 		}
 		this.pending = true;
-		pendingUpdates.insert(this);
-		deferFlush();
+		this.root.enqueueLayer(this);
 	}
 	unmount() {
 		this.alive = false;

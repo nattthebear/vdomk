@@ -7,7 +7,7 @@ export const SVG_NS = "http://www.w3.org/2000/svg";
 abstract class RNodeBase {
 	abstract vNode: VNode;
 	abstract element: ChildNode;
-	abstract update(vNode: VNode, layer: ComponentLayer | undefined): boolean;
+	abstract update(vNode: VNode, layer: ComponentLayer): boolean;
 	unmount(removeSelf: boolean) {
 		if (removeSelf) {
 			this.element.remove();
@@ -19,13 +19,7 @@ export class RElement extends RNodeBase {
 	element: Element;
 	selfInSvg: boolean;
 	childrenInSvg: boolean;
-	constructor(
-		public vNode: VElement,
-		parent: Element,
-		adjacent: Node | null,
-		layer: ComponentLayer | undefined,
-		inSvg: boolean
-	) {
+	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: ComponentLayer, inSvg: boolean) {
 		super();
 		const { type } = vNode;
 		inSvg ||= type === "svg";
@@ -48,7 +42,7 @@ export class RElement extends RNodeBase {
 		this.children?.unmount(true);
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode, layer: ComponentLayer | undefined) {
+	update(vNode: VNode, layer: ComponentLayer) {
 		if (!isVElement(vNode) || this.vNode.type !== vNode.type) {
 			return false;
 		}
@@ -83,7 +77,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		public vNode: VComponent<P>,
 		parent: Element,
 		adjacent: Node | null,
-		parentLayer: ComponentLayer | undefined,
+		parentLayer: ComponentLayer,
 		inSvg: boolean
 	) {
 		super();
@@ -91,6 +85,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		this.layer = new ComponentLayer(
 			new RText(undefined, parent, adjacent),
 			parentLayer,
+			parentLayer.root,
 			vNode.type,
 			() => this.vNode.props,
 			inSvg
@@ -104,7 +99,9 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		if (!isVComponent(vNode) || this.vNode.type !== vNode.type) {
 			return false;
 		}
-		this.layer.scheduleUpdate();
+		if (this.vNode.props !== vNode.props) {
+			this.layer.runUpdate(true);
+		}
 		this.vNode = vNode;
 		return true;
 	}
@@ -118,7 +115,7 @@ export class RArray extends RNodeBase {
 		public vNode: VArray,
 		parent: Element,
 		adjacent: Node | null,
-		layer: ComponentLayer | undefined,
+		layer: ComponentLayer,
 		public inSvg: boolean
 	) {
 		super();
@@ -133,7 +130,7 @@ export class RArray extends RNodeBase {
 		this.end.remove();
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode, layer: ComponentLayer | undefined) {
+	update(vNode: VNode, layer: ComponentLayer) {
 		if (!isVArray(vNode)) {
 			return false;
 		}
@@ -183,13 +180,7 @@ export class RText extends RNodeBase {
 }
 export type RNode = RElement | RComponent<any> | RArray | RText;
 
-function mount(
-	vNode: VNode,
-	parent: Element,
-	adjacent: Node | null,
-	layer: ComponentLayer | undefined,
-	inSvg: boolean
-): RNode {
+function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer, inSvg: boolean): RNode {
 	if (isVElement(vNode)) {
 		return new RElement(vNode, parent, adjacent, layer, inSvg);
 	}
@@ -202,7 +193,7 @@ function mount(
 	return new RText(vNode, parent, adjacent);
 }
 
-export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer | undefined, inSvg: boolean) {
+export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer, inSvg: boolean) {
 	if (r.vNode === newVNode) {
 		return r;
 	}
