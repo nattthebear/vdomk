@@ -1,30 +1,6 @@
 import { RNode, diff } from "./diff";
 import type { RootComponentFunctions } from "./root";
-import type { VNode } from "./vdom";
-
-export interface Hooks {
-	/** Registers a function to be called when this component is unmounted. */
-	cleanup(cb: () => void): void;
-	/** Calls a function in the effect phase after this render completes. */
-	effect(cb: () => void): void;
-	/** Schedules a rerender of this component. */
-	scheduleUpdate(): void;
-}
-
-/**
- * One Phase Component.  Similar to a React hookless stateless component.
- * The provided function is called for each rerender.
- * Hooks may be used, but `cleanup` doesn't make much sense.
- */
-export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNode;
-/**
- * Two Phase Component.  The provided function is called once on mount,
- * and then the function it returns is called for each rerender.
- * The provided function is called for each rerender.
- * Hooks are fully supported, but `cleanup` only makes sense on mount.
- */
-export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
-export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
+import type { Component, Hooks, OPC, VNode } from "./types";
 
 /** Keeps track of a Component.  This could be merged with RComponent. */
 export class ComponentLayer<P extends Record<string, any> = any> {

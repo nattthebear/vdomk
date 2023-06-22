@@ -1,13 +1,6 @@
-import { ComponentLayer, OPC } from "./Component";
-import type { VNode } from "./vdom";
+import type { OPC, RenderRoot, VNode } from "./types";
+import { ComponentLayer } from "./Component";
 import { RText } from "./diff";
-
-export interface RenderRoot {
-	/** Render new content in the root, diffing with existing content and unmounting/mounting new components as needed. */
-	render(newVNode: VNode): void;
-	/** Unmount this root entirely, unmounting all child components and removing all nodes.  It can no longer be used. */
-	unmount(): void;
-}
 
 /** The capabilities provided by the render root to components */
 export interface RootComponentFunctions {

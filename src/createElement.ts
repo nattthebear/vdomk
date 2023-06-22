@@ -1,5 +1,4 @@
-import { VArray, VComponent, VElement, VNode } from "./vdom";
-import type { Component } from "./Component";
+import type { VArray, VComponent, VElement, VNode, Component } from "./types";
 
 const EMPTY_ARRAY: never[] = [];
 const EMPTY_OBJECT: Record<string, never> = {};

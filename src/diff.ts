@@ -1,19 +1,8 @@
 import type { AssertTrue, Has } from "conditional-type-checks";
 import { ComponentLayer } from "./Component";
 import { setProperty } from "./props";
-import {
-	VNode,
-	VElement,
-	VComponent,
-	VArray,
-	VText,
-	isVElement,
-	isVArray,
-	isVText,
-	isVComponent,
-	KeyType,
-	getVKey,
-} from "./vdom";
+import type { VNode, VElement, VComponent, VArray, VText, KeyType } from "./types";
+import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
 const { min } = Math;

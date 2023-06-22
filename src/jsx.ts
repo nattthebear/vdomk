@@ -1,7 +1,6 @@
 // JSX Types adapted from preact
 
-import type { Component } from "./Component";
-import type { KeyType, VNode } from "./vdom";
+import type { Component, KeyType, VNode } from "./types";
 
 type Booleanish = boolean | "true" | "false";
 
@@ -10,7 +9,6 @@ interface ClassAttributes<T> {
 	children?: VNode;
 	ref?: (value: T | null) => void;
 }
-type ComponentType<P extends Record<string, any>> = Component<P>;
 
 declare global {
 	namespace JSX {
