@@ -91,8 +91,7 @@ export function createRoot(container: Element, adjacent?: Node | null | undefine
 		undefined,
 		{ enqueueLayer, enqueueEffect },
 		RootComponent,
-		() => ({ children: vNode }),
-		container.namespaceURI === SVG_NS && container.tagName !== "foreignObject"
+		() => ({ children: vNode })
 	);
 
 	return {

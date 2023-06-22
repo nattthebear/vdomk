@@ -17,25 +17,22 @@ abstract class RNodeBase {
 export class RElement extends RNodeBase {
 	children: RNode | undefined;
 	element: Element;
-	selfInSvg: boolean;
-	childrenInSvg: boolean;
-	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: ComponentLayer, inSvg: boolean) {
+	svg: boolean;
+	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
 		super();
 		const { type } = vNode;
-		inSvg ||= type === "svg";
-		const element = inSvg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
-		this.selfInSvg = inSvg;
-		inSvg &&= type !== "foreignObject";
-		this.childrenInSvg = inSvg;
+		const svg = type === "svg" || (parent.namespaceURI === SVG_NS && parent.tagName !== "foreignObject");
+		const element = svg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
+		this.svg = svg;
 		parent.insertBefore(element, adjacent);
 		this.element = element;
 		const { props } = vNode;
 		for (const k in props) {
-			setProperty(element, k, undefined, props[k], this.selfInSvg);
+			setProperty(element, k, undefined, props[k], this.svg);
 		}
 		const { children } = props;
 		if (children !== undefined) {
-			this.children = mount(children, element, null, layer, inSvg);
+			this.children = mount(children, element, null, layer);
 		}
 	}
 	unmount(removeSelf: boolean) {
@@ -48,24 +45,24 @@ export class RElement extends RNodeBase {
 		}
 		const oldProps = this.vNode.props;
 		const newProps = vNode.props;
-		const { element, selfInSvg, childrenInSvg } = this;
+		const { element, svg } = this;
 		for (const k in oldProps) {
 			if (!(k in newProps)) {
-				setProperty(element, k, oldProps[k], undefined, selfInSvg);
+				setProperty(element, k, oldProps[k], undefined, svg);
 			}
 		}
 		for (const k in newProps) {
-			setProperty(element, k, oldProps[k], newProps[k], selfInSvg);
+			setProperty(element, k, oldProps[k], newProps[k], svg);
 		}
 		this.vNode = vNode;
 		const { children } = newProps;
 		if (this.children && children !== undefined) {
-			this.children = diff(this.children, children, layer, childrenInSvg);
+			this.children = diff(this.children, children, layer);
 		} else if (this.children) {
 			this.children.unmount(true);
 			this.children = undefined;
 		} else if (children !== undefined) {
-			this.children = mount(children, element, null, layer, childrenInSvg);
+			this.children = mount(children, element, null, layer);
 		}
 		return true;
 	}
@@ -73,13 +70,7 @@ export class RElement extends RNodeBase {
 export class RComponent<P extends Record<string, any>> extends RNodeBase {
 	layer: ComponentLayer<P>;
 	element = new Text();
-	constructor(
-		public vNode: VComponent<P>,
-		parent: Element,
-		adjacent: Node | null,
-		parentLayer: ComponentLayer,
-		inSvg: boolean
-	) {
+	constructor(public vNode: VComponent<P>, parent: Element, adjacent: Node | null, parentLayer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
 		this.layer = new ComponentLayer(
@@ -87,8 +78,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 			parentLayer,
 			parentLayer.root,
 			vNode.type,
-			() => this.vNode.props,
-			inSvg
+			() => this.vNode.props
 		);
 	}
 	unmount(removeSelf: boolean) {
@@ -112,16 +102,10 @@ export class RArray extends RNodeBase {
 	children: RNode[];
 	element = new Text();
 	end = new Text();
-	constructor(
-		public vNode: VArray,
-		parent: Element,
-		adjacent: Node | null,
-		layer: ComponentLayer,
-		public inSvg: boolean
-	) {
+	constructor(public vNode: VArray, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
-		this.children = vNode.map((v) => mount(v, parent, adjacent, layer, inSvg));
+		this.children = vNode.map((v) => mount(v, parent, adjacent, layer));
 		parent.insertBefore(this.end, adjacent);
 	}
 	unmount(removeSelf: boolean) {
@@ -135,12 +119,11 @@ export class RArray extends RNodeBase {
 		if (!isVArray(vNode)) {
 			return false;
 		}
-		const { inSvg } = this;
 		const oldVNode = this.vNode;
 		this.vNode = vNode;
 		let i = 0;
 		for (; i < vNode.length && i < oldVNode.length; i++) {
-			this.children[i] = diff(this.children[i], vNode[i], layer, inSvg);
+			this.children[i] = diff(this.children[i], vNode[i], layer);
 		}
 		for (; i < oldVNode.length; i++) {
 			this.children[i].unmount(true);
@@ -150,7 +133,7 @@ export class RArray extends RNodeBase {
 			const { end } = this;
 			const parent = end.parentElement!;
 			for (; i < vNode.length; i++) {
-				this.children[i] = mount(vNode[i], parent, end, layer, inSvg);
+				this.children[i] = mount(vNode[i], parent, end, layer);
 			}
 		}
 		return true;
@@ -181,20 +164,20 @@ export class RText extends RNodeBase {
 }
 export type RNode = RElement | RComponent<any> | RArray | RText;
 
-function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer, inSvg: boolean): RNode {
+function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
 	if (isVElement(vNode)) {
-		return new RElement(vNode, parent, adjacent, layer, inSvg);
+		return new RElement(vNode, parent, adjacent, layer);
 	}
 	if (isVComponent(vNode)) {
-		return new RComponent(vNode, parent, adjacent, layer, inSvg);
+		return new RComponent(vNode, parent, adjacent, layer);
 	}
 	if (isVArray(vNode)) {
-		return new RArray(vNode, parent, adjacent, layer, inSvg);
+		return new RArray(vNode, parent, adjacent, layer);
 	}
 	return new RText(vNode, parent, adjacent);
 }
 
-export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer, inSvg: boolean) {
+export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
 	if (r.vNode === newVNode) {
 		return r;
 	}
@@ -202,7 +185,7 @@ export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer, inSvg: bo
 		return r;
 	}
 	r.unmount(false);
-	const ret = mount(newVNode, r.element.parentElement!, r.element, layer, inSvg);
+	const ret = mount(newVNode, r.element.parentElement!, r.element, layer);
 	r.element.remove();
 	return ret;
 }
