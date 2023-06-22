@@ -1,3 +1,4 @@
+import type { AssertTrue, Has } from "conditional-type-checks";
 import { ComponentLayer } from "./Component";
 import { setProperty } from "./props";
 import {
@@ -15,13 +16,18 @@ import {
 } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
-const { max, min } = Math;
+const { min } = Math;
 
-abstract class RNodeBase {
+interface RNodeFactory<T extends VNode> {
+	guard(vNode: VNode): vNode is T;
+	new (vNode: T, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode & RNodeBase<T>;
+}
+
+abstract class RNodeBase<T extends VNode> {
 	abstract vNode: VNode;
 	abstract element: ChildNode;
 	end: ChildNode | undefined;
-	abstract update(vNode: VNode, layer: ComponentLayer): boolean;
+	abstract update(vNode: T, layer: ComponentLayer): boolean;
 	unmount(removeSelf: boolean) {
 		if (removeSelf) {
 			this.element.remove();
@@ -36,10 +42,12 @@ abstract class RNodeBase {
 		parent.insertBefore(range.extractContents(), adjacent);
 	}
 }
-export class RElement extends RNodeBase {
+type __CHECKRElement = AssertTrue<Has<typeof RElement, RNodeFactory<VElement>>>;
+export class RElement extends RNodeBase<VElement> {
 	children: RNode | undefined;
 	element: Element;
 	svg: boolean;
+	static guard = isVElement;
 	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
 		super();
 		const { type } = vNode;
@@ -63,8 +71,8 @@ export class RElement extends RNodeBase {
 		this.vNode.props.ref?.(null);
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode, layer: ComponentLayer) {
-		if (!isVElement(vNode) || this.vNode.type !== vNode.type || this.vNode.key !== vNode.key) {
+	update(vNode: VElement, layer: ComponentLayer) {
+		if (this.vNode.type !== vNode.type) {
 			return false;
 		}
 		const oldProps = this.vNode.props;
@@ -91,10 +99,12 @@ export class RElement extends RNodeBase {
 		return true;
 	}
 }
-export class RComponent<P extends Record<string, any>> extends RNodeBase {
+type __CHECKRComponent = AssertTrue<Has<typeof RComponent, RNodeFactory<VComponent>>>;
+export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> {
 	layer: ComponentLayer<P>;
 	element = new Text();
 	end = new Text();
+	static guard = isVComponent;
 	constructor(public vNode: VComponent<P>, parent: Element, adjacent: Node | null, parentLayer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
@@ -111,8 +121,8 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		this.layer.unmount();
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode) {
-		if (!isVComponent(vNode) || this.vNode.type !== vNode.type || this.vNode.key !== vNode.key) {
+	update(vNode: VComponent) {
+		if (this.vNode.type !== vNode.type) {
 			return false;
 		}
 		const oldProps = this.vNode.props;
@@ -123,10 +133,12 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		return true;
 	}
 }
-export class RArray extends RNodeBase {
+type __CHECKRArray = AssertTrue<Has<typeof RArray, RNodeFactory<VArray>>>;
+export class RArray extends RNodeBase<VArray> {
 	children: RNode[];
 	element = new Text();
 	end = new Text();
+	static guard = isVArray;
 	constructor(public vNode: VArray, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
@@ -140,10 +152,7 @@ export class RArray extends RNodeBase {
 		this.end.remove();
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode, layer: ComponentLayer) {
-		if (!isVArray(vNode) || this.vNode.key !== vNode.key) {
-			return false;
-		}
+	update(vNode: VArray, layer: ComponentLayer) {
 		const { children } = this;
 		const oldVNode = this.vNode;
 		const parent = this.element.parentElement!;
@@ -238,43 +247,55 @@ function toText(vNode: VText) {
 	}
 	return String(vNode);
 }
-export class RText extends RNodeBase {
+type __CHECKRText = AssertTrue<Has<typeof RText, RNodeFactory<VText>>>;
+export class RText extends RNodeBase<VText> {
 	element: Text;
+	static guard = isVText;
 	constructor(public vNode: VText, parent: Element, adjacent: Node | null) {
 		super();
 		const element = new Text(toText(vNode));
 		parent.insertBefore(element, adjacent);
 		this.element = element;
 	}
-	update(vNode: VNode) {
-		if (!isVText(vNode)) {
-			return false;
-		}
+	update(vNode: VText) {
 		this.element.nodeValue = toText(vNode);
 		this.vNode = vNode;
 		return true;
 	}
 }
+
+export interface RElement {
+	constructor: typeof RElement & RNodeFactory<VElement>;
+}
+export interface RComponent<P extends Record<string, any>> {
+	constructor: typeof RComponent & RNodeFactory<VComponent>;
+}
+export interface RArray {
+	constructor: typeof RArray & RNodeFactory<VArray>;
+}
+export interface RText {
+	constructor: typeof RText & RNodeFactory<VText>;
+}
 export type RNode = RElement | RComponent<any> | RArray | RText;
 
+const factories: RNodeFactory<any>[] = [RElement, RComponent, RArray, RText];
+
 function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
-	if (isVElement(vNode)) {
-		return new RElement(vNode, parent, adjacent, layer);
+	for (const clazz of factories) {
+		if (clazz.guard(vNode)) {
+			return new clazz(vNode, parent, adjacent, layer);
+		}
 	}
-	if (isVComponent(vNode)) {
-		return new RComponent(vNode, parent, adjacent, layer);
-	}
-	if (isVArray(vNode)) {
-		return new RArray(vNode, parent, adjacent, layer);
-	}
-	return new RText(vNode, parent, adjacent);
+	// This can only be hit by violating the types
+	return undefined!;
 }
 
 export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
-	if (r.vNode === newVNode) {
+	const oldVNode = r.vNode;
+	if (oldVNode === newVNode) {
 		return r;
 	}
-	if (r.update(newVNode, layer)) {
+	if (r.constructor.guard(newVNode) && getVKey(oldVNode) === getVKey(newVNode) && r.update(newVNode as any, layer)) {
 		return r;
 	}
 	r.unmount(false);
