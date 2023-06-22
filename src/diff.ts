@@ -17,22 +17,41 @@ import {
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
 const { min } = Math;
-
+/** Factory to instantiate an RNode type */
 interface RNodeFactory<T extends VNode> {
+	/** Validate that the VNode is of the right type for this factory */
 	guard(vNode: VNode): vNode is T;
+	/** Create the RNode */
 	new (vNode: T, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode & RNodeBase<T>;
 }
-
+/** Tracks a VNode that's currently rendered into the document */
 abstract class RNodeBase<T extends VNode> {
+	/** The VNode currently rendered by this RNode */
 	abstract vNode: VNode;
+	/** The DOM Node that represents the start of content for this VNode */
 	abstract element: ChildNode;
+	/** If present, a marker node that defines the end of content for this VNode.  If not present, this.element is the only rendered Node. */
 	end: ChildNode | undefined;
+	/**
+	 * Attempts to update in place.
+	 * @param vNode A replacement VNode.
+	 * @param layer The component layer this RNode is in.
+	 * @returns false if the update could not be performed.
+	 */
 	abstract update(vNode: T, layer: ComponentLayer): boolean;
+	/**
+	 * Fully unmount this RNode.
+	 * @param removeSelf If false, the caller will have to call rNode.element.remove() afterwards.
+	 */
 	unmount(removeSelf: boolean) {
 		if (removeSelf) {
 			this.element.remove();
 		}
 	}
+	/**
+	 * Relocates this RNode in the DOM.  Must keep the same element parent.  Does not fire any lifecycle methods.
+	 * @param adjacent Reference Node to place this RNode before.  If null, this is placed at the end of it's parent.
+	 */
 	moveTo(adjacent: Node | null) {
 		const { element, end } = this;
 		const parent = element.parentElement!;
@@ -43,6 +62,7 @@ abstract class RNodeBase<T extends VNode> {
 	}
 }
 type __CHECKRElement = AssertTrue<Has<typeof RElement, RNodeFactory<VElement>>>;
+/** RNode representing a VElement */
 export class RElement extends RNodeBase<VElement> {
 	children: RNode | undefined;
 	element: Element;
@@ -100,6 +120,7 @@ export class RElement extends RNodeBase<VElement> {
 	}
 }
 type __CHECKRComponent = AssertTrue<Has<typeof RComponent, RNodeFactory<VComponent>>>;
+/** RNode representing a VComponent */
 export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> {
 	layer: ComponentLayer<P>;
 	element = new Text();
@@ -134,6 +155,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 	}
 }
 type __CHECKRArray = AssertTrue<Has<typeof RArray, RNodeFactory<VArray>>>;
+/** RNode representing a VArray */
 export class RArray extends RNodeBase<VArray> {
 	children: RNode[];
 	element = new Text();
@@ -241,6 +263,7 @@ export class RArray extends RNodeBase<VArray> {
 		return true;
 	}
 }
+/** Compute the string display representation of a VText */
 function toText(vNode: VText) {
 	if (vNode == null || typeof vNode === "boolean") {
 		return "";
@@ -248,6 +271,7 @@ function toText(vNode: VText) {
 	return String(vNode);
 }
 type __CHECKRText = AssertTrue<Has<typeof RText, RNodeFactory<VText>>>;
+/** RNode representing a VText */
 export class RText extends RNodeBase<VText> {
 	element: Text;
 	static guard = isVText;
@@ -280,6 +304,14 @@ export type RNode = RElement | RComponent<any> | RArray | RText;
 
 const factories: RNodeFactory<any>[] = [RElement, RComponent, RArray, RText];
 
+/**
+ * Mount a VNode, returning an RNode representing the rendering of it into the DOM.
+ * @param vNode The VNode to mount.
+ * @param parent The DOM Element to place this VNode in.
+ * @param adjacent A child of parent to place this RNode before.  If null, place at the end of parent.
+ * @param layer The current component layer.
+ * @returns
+ */
 function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
 	for (const clazz of factories) {
 		if (clazz.guard(vNode)) {
@@ -290,6 +322,13 @@ function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: Comp
 	return undefined!;
 }
 
+/**
+ * Execute a diff of VNodes, updating, unmounting, and mounting as needed.
+ * @param r The current RNode
+ * @param newVNode The replacement VNode.
+ * @param layer The current component layer.
+ * @returns The new RNode.  May be the same as r if an in-place update was done.
+ */
 export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
 	const oldVNode = r.vNode;
 	if (oldVNode === newVNode) {

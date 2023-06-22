@@ -26,6 +26,7 @@ export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNo
 export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
 export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 
+/** Keeps track of a Component.  This could be merged with RComponent. */
 export class ComponentLayer<P extends Record<string, any> = any> {
 	depth: number;
 	alive = true;
