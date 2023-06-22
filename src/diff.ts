@@ -148,40 +148,40 @@ export class RArray extends RNodeBase {
 		const oldVNode = this.vNode;
 		const parent = this.element.parentElement!;
 
-		interface NeedsNew {
+		interface ToBeMounted {
 			adjacent: ChildNode;
 			key: KeyType;
 			vNode: VNode;
 			index: number;
 		}
 
-		let unsatisfied: NeedsNew[] | undefined;
-		let reusable: Map<KeyType, RNode> | undefined;
+		let toBeMounted: ToBeMounted[] | undefined;
+		let toBeUnmounted: Map<KeyType, RNode> | undefined;
 		const oldLength = oldVNode.length;
 		const newLength = vNode.length;
 		const minLength = min(oldLength, newLength);
 
-		function handleNew(adjacent: ChildNode, key: KeyType, vNode: VNode, index: number, shouldPush: boolean) {
+		function tryMount(adjacent: ChildNode, key: KeyType, vNode: VNode, index: number, canDefer: boolean) {
 			if (key !== undefined) {
-				const toMove = reusable?.get(key);
+				const toMove = toBeUnmounted?.get(key);
 				if (toMove) {
-					reusable!.delete(key);
+					toBeUnmounted!.delete(key);
 					toMove.moveTo(adjacent);
 					children[index] = diff(toMove, vNode, layer);
 					return;
 				}
-				if (shouldPush) {
+				if (canDefer) {
 					const savedAdjacent = new Text();
 					parent.insertBefore(savedAdjacent, adjacent);
-					(unsatisfied ??= []).push({ adjacent: savedAdjacent, key, vNode, index });
+					(toBeMounted ??= []).push({ adjacent: savedAdjacent, key, vNode, index });
 					return;
 				}
 			}
 			children[index] = mount(vNode, parent, adjacent, layer);
 		}
-		function handleOld(rNode: RNode, key: KeyType) {
+		function tryUnmount(rNode: RNode, key: KeyType) {
 			if (key !== undefined) {
-				(reusable ??= new Map<KeyType, RNode>()).set(key, rNode);
+				(toBeUnmounted ??= new Map<KeyType, RNode>()).set(key, rNode);
 			} else {
 				rNode.unmount(true);
 			}
@@ -198,32 +198,32 @@ export class RArray extends RNodeBase {
 			if (oldKey === newKey) {
 				children[i] = diff(rNode, newVChild, layer);
 			} else {
-				handleNew(rNode.element, newKey, newVChild, i, true);
-				handleOld(rNode, oldKey);
+				tryMount(rNode.element, newKey, newVChild, i, true);
+				tryUnmount(rNode, oldKey);
 			}
 		}
 		for (; i < oldLength; i++) {
 			const rNode = children[i];
 			const oldVChild = this.vNode[i];
 			const oldKey = getVKey(oldVChild);
-			handleOld(rNode, oldKey);
+			tryUnmount(rNode, oldKey);
 		}
 		children.length = newLength;
 		for (; i < newLength; i++) {
 			const newVChild = vNode[i];
 			const newKey = getVKey(newVChild);
-			handleNew(this.end, newKey, newVChild, i, false);
+			tryMount(this.end, newKey, newVChild, i, false);
 		}
 
-		if (unsatisfied) {
-			for (const { adjacent, key, vNode, index } of unsatisfied) {
-				handleNew(adjacent, key, vNode, index, false);
+		if (toBeMounted) {
+			for (const { adjacent, key, vNode, index } of toBeMounted) {
+				tryMount(adjacent, key, vNode, index, false);
 				adjacent.remove();
 			}
 		}
 
-		if (reusable) {
-			for (const rNode of reusable.values()) {
+		if (toBeUnmounted) {
+			for (const rNode of toBeUnmounted.values()) {
 				rNode.unmount(true);
 			}
 		}
