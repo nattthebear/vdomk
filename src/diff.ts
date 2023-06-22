@@ -64,7 +64,7 @@ export class RElement extends RNodeBase {
 		super.unmount(removeSelf);
 	}
 	update(vNode: VNode, layer: ComponentLayer) {
-		if (!isVElement(vNode) || this.vNode.type !== vNode.type) {
+		if (!isVElement(vNode) || this.vNode.type !== vNode.type || this.vNode.key !== vNode.key) {
 			return false;
 		}
 		const oldProps = this.vNode.props;
@@ -112,7 +112,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		super.unmount(removeSelf);
 	}
 	update(vNode: VNode) {
-		if (!isVComponent(vNode) || this.vNode.type !== vNode.type) {
+		if (!isVComponent(vNode) || this.vNode.type !== vNode.type || this.vNode.key !== vNode.key) {
 			return false;
 		}
 		const oldProps = this.vNode.props;
@@ -141,7 +141,7 @@ export class RArray extends RNodeBase {
 		super.unmount(removeSelf);
 	}
 	update(vNode: VNode, layer: ComponentLayer) {
-		if (!isVArray(vNode)) {
+		if (!isVArray(vNode) || this.vNode.key !== vNode.key) {
 			return false;
 		}
 		const { children } = this;

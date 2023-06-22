@@ -13,7 +13,7 @@ export interface VComponent<P extends Record<string, any> = any> {
 	key: KeyType;
 	props: P;
 }
-export type VArray = VNode[];
+export type VArray = VNode[] & { key?: KeyType };
 export type VText = number | string | boolean | null | undefined;
 export type VNode = VElement | VComponent | VArray | VText;
 
