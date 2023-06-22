@@ -1,23 +1,73 @@
+import type { AssertTrue, Has } from "conditional-type-checks";
 import { ComponentLayer } from "./Component";
 import { setProperty } from "./props";
-import { VNode, VElement, VComponent, VArray, VText, isVElement, isVArray, isVText, isVComponent } from "./vdom";
+import {
+	VNode,
+	VElement,
+	VComponent,
+	VArray,
+	VText,
+	isVElement,
+	isVArray,
+	isVText,
+	isVComponent,
+	KeyType,
+	getVKey,
+} from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
-
-abstract class RNodeBase {
+const { min } = Math;
+/** Factory to instantiate an RNode type */
+interface RNodeFactory<T extends VNode> {
+	/** Validate that the VNode is of the right type for this factory */
+	guard(vNode: VNode): vNode is T;
+	/** Create the RNode */
+	new (vNode: T, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode & RNodeBase<T>;
+}
+/** Tracks a VNode that's currently rendered into the document */
+abstract class RNodeBase<T extends VNode> {
+	/** The VNode currently rendered by this RNode */
 	abstract vNode: VNode;
+	/** The DOM Node that represents the start of content for this VNode */
 	abstract element: ChildNode;
-	abstract update(vNode: VNode, layer: ComponentLayer): boolean;
+	/** If present, a marker node that defines the end of content for this VNode.  If not present, this.element is the only rendered Node. */
+	end: ChildNode | undefined;
+	/**
+	 * Attempts to update in place.
+	 * @param vNode A replacement VNode.
+	 * @param layer The component layer this RNode is in.
+	 * @returns false if the update could not be performed.
+	 */
+	abstract update(vNode: T, layer: ComponentLayer): boolean;
+	/**
+	 * Fully unmount this RNode.
+	 * @param removeSelf If false, the caller will have to call rNode.element.remove() afterwards.
+	 */
 	unmount(removeSelf: boolean) {
 		if (removeSelf) {
 			this.element.remove();
 		}
 	}
+	/**
+	 * Relocates this RNode in the DOM.  Must keep the same element parent.  Does not fire any lifecycle methods.
+	 * @param adjacent Reference Node to place this RNode before.  If null, this is placed at the end of it's parent.
+	 */
+	moveTo(adjacent: Node | null) {
+		const { element, end } = this;
+		const parent = element.parentElement!;
+		const range = new Range();
+		range.setStartBefore(element);
+		range.setEndAfter(end ?? element);
+		parent.insertBefore(range.extractContents(), adjacent);
+	}
 }
-export class RElement extends RNodeBase {
+type __CHECKRElement = AssertTrue<Has<typeof RElement, RNodeFactory<VElement>>>;
+/** RNode representing a VElement */
+export class RElement extends RNodeBase<VElement> {
 	children: RNode | undefined;
 	element: Element;
 	svg: boolean;
+	static guard = isVElement;
 	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
 		super();
 		const { type } = vNode;
@@ -37,10 +87,12 @@ export class RElement extends RNodeBase {
 	}
 	unmount(removeSelf: boolean) {
 		this.children?.unmount(true);
+		// Most props don't need to be unset when unmounting
+		this.vNode.props.ref?.(null);
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode, layer: ComponentLayer) {
-		if (!isVElement(vNode) || this.vNode.type !== vNode.type) {
+	update(vNode: VElement, layer: ComponentLayer) {
+		if (this.vNode.type !== vNode.type) {
 			return false;
 		}
 		const oldProps = this.vNode.props;
@@ -67,9 +119,13 @@ export class RElement extends RNodeBase {
 		return true;
 	}
 }
-export class RComponent<P extends Record<string, any>> extends RNodeBase {
+type __CHECKRComponent = AssertTrue<Has<typeof RComponent, RNodeFactory<VComponent>>>;
+/** RNode representing a VComponent */
+export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> {
 	layer: ComponentLayer<P>;
 	element = new Text();
+	end = new Text();
+	static guard = isVComponent;
 	constructor(public vNode: VComponent<P>, parent: Element, adjacent: Node | null, parentLayer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
@@ -80,13 +136,14 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 			vNode.type,
 			() => this.vNode.props
 		);
+		parent.insertBefore(this.end, adjacent);
 	}
 	unmount(removeSelf: boolean) {
 		this.layer.unmount();
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode) {
-		if (!isVComponent(vNode) || this.vNode.type !== vNode.type) {
+	update(vNode: VComponent) {
+		if (this.vNode.type !== vNode.type) {
 			return false;
 		}
 		const oldProps = this.vNode.props;
@@ -97,11 +154,13 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		return true;
 	}
 }
-
-export class RArray extends RNodeBase {
+type __CHECKRArray = AssertTrue<Has<typeof RArray, RNodeFactory<VArray>>>;
+/** RNode representing a VArray */
+export class RArray extends RNodeBase<VArray> {
 	children: RNode[];
 	element = new Text();
 	end = new Text();
+	static guard = isVArray;
 	constructor(public vNode: VArray, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
@@ -115,73 +174,167 @@ export class RArray extends RNodeBase {
 		this.end.remove();
 		super.unmount(removeSelf);
 	}
-	update(vNode: VNode, layer: ComponentLayer) {
-		if (!isVArray(vNode)) {
-			return false;
-		}
+	update(vNode: VArray, layer: ComponentLayer) {
+		const { children } = this;
 		const oldVNode = this.vNode;
-		this.vNode = vNode;
-		let i = 0;
-		for (; i < vNode.length && i < oldVNode.length; i++) {
-			this.children[i] = diff(this.children[i], vNode[i], layer);
+		const parent = this.element.parentElement!;
+
+		interface ToBeMounted {
+			adjacent: ChildNode;
+			key: KeyType;
+			vNode: VNode;
+			index: number;
 		}
-		for (; i < oldVNode.length; i++) {
-			this.children[i].unmount(true);
+
+		let toBeMounted: ToBeMounted[] | undefined;
+		let toBeUnmounted: Map<KeyType, RNode> | undefined;
+		const oldLength = oldVNode.length;
+		const newLength = vNode.length;
+		const minLength = min(oldLength, newLength);
+
+		function tryMount(adjacent: ChildNode, key: KeyType, vNode: VNode, index: number, canDefer: boolean) {
+			if (key !== undefined) {
+				const toMove = toBeUnmounted?.get(key);
+				if (toMove) {
+					toBeUnmounted!.delete(key);
+					toMove.moveTo(adjacent);
+					children[index] = diff(toMove, vNode, layer);
+					return;
+				}
+				if (canDefer) {
+					const savedAdjacent = new Text();
+					parent.insertBefore(savedAdjacent, adjacent);
+					(toBeMounted ??= []).push({ adjacent: savedAdjacent, key, vNode, index });
+					return;
+				}
+			}
+			children[index] = mount(vNode, parent, adjacent, layer);
 		}
-		this.children.length = vNode.length;
-		if (i < vNode.length) {
-			const { end } = this;
-			const parent = end.parentElement!;
-			for (; i < vNode.length; i++) {
-				this.children[i] = mount(vNode[i], parent, end, layer);
+		function tryUnmount(rNode: RNode, key: KeyType) {
+			if (key !== undefined) {
+				(toBeUnmounted ??= new Map<KeyType, RNode>()).set(key, rNode);
+			} else {
+				rNode.unmount(true);
 			}
 		}
+
+		let i = 0;
+		for (; i < minLength; i++) {
+			const rNode = children[i];
+			const oldVChild = this.vNode[i];
+			const newVChild = vNode[i];
+			const oldKey = getVKey(oldVChild);
+			const newKey = getVKey(newVChild);
+
+			if (oldKey === newKey) {
+				children[i] = diff(rNode, newVChild, layer);
+			} else {
+				tryMount(rNode.element, newKey, newVChild, i, true);
+				tryUnmount(rNode, oldKey);
+			}
+		}
+		for (; i < oldLength; i++) {
+			const rNode = children[i];
+			const oldVChild = this.vNode[i];
+			const oldKey = getVKey(oldVChild);
+			tryUnmount(rNode, oldKey);
+		}
+		children.length = newLength;
+		for (; i < newLength; i++) {
+			const newVChild = vNode[i];
+			const newKey = getVKey(newVChild);
+			tryMount(this.end, newKey, newVChild, i, false);
+		}
+
+		if (toBeMounted) {
+			for (const { adjacent, key, vNode, index } of toBeMounted) {
+				tryMount(adjacent, key, vNode, index, false);
+				adjacent.remove();
+			}
+		}
+
+		if (toBeUnmounted) {
+			for (const rNode of toBeUnmounted.values()) {
+				rNode.unmount(true);
+			}
+		}
+
+		this.vNode = vNode;
 		return true;
 	}
 }
+/** Compute the string display representation of a VText */
 function toText(vNode: VText) {
 	if (vNode == null || typeof vNode === "boolean") {
 		return "";
 	}
 	return String(vNode);
 }
-export class RText extends RNodeBase {
+type __CHECKRText = AssertTrue<Has<typeof RText, RNodeFactory<VText>>>;
+/** RNode representing a VText */
+export class RText extends RNodeBase<VText> {
 	element: Text;
+	static guard = isVText;
 	constructor(public vNode: VText, parent: Element, adjacent: Node | null) {
 		super();
 		const element = new Text(toText(vNode));
 		parent.insertBefore(element, adjacent);
 		this.element = element;
 	}
-	update(vNode: VNode) {
-		if (!isVText(vNode)) {
-			return false;
-		}
+	update(vNode: VText) {
 		this.element.nodeValue = toText(vNode);
 		this.vNode = vNode;
 		return true;
 	}
 }
+
+export interface RElement {
+	constructor: typeof RElement & RNodeFactory<VElement>;
+}
+export interface RComponent<P extends Record<string, any>> {
+	constructor: typeof RComponent & RNodeFactory<VComponent>;
+}
+export interface RArray {
+	constructor: typeof RArray & RNodeFactory<VArray>;
+}
+export interface RText {
+	constructor: typeof RText & RNodeFactory<VText>;
+}
 export type RNode = RElement | RComponent<any> | RArray | RText;
 
+const factories: RNodeFactory<any>[] = [RElement, RComponent, RArray, RText];
+
+/**
+ * Mount a VNode, returning an RNode representing the rendering of it into the DOM.
+ * @param vNode The VNode to mount.
+ * @param parent The DOM Element to place this VNode in.
+ * @param adjacent A child of parent to place this RNode before.  If null, place at the end of parent.
+ * @param layer The current component layer.
+ * @returns
+ */
 function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
-	if (isVElement(vNode)) {
-		return new RElement(vNode, parent, adjacent, layer);
+	for (const clazz of factories) {
+		if (clazz.guard(vNode)) {
+			return new clazz(vNode, parent, adjacent, layer);
+		}
 	}
-	if (isVComponent(vNode)) {
-		return new RComponent(vNode, parent, adjacent, layer);
-	}
-	if (isVArray(vNode)) {
-		return new RArray(vNode, parent, adjacent, layer);
-	}
-	return new RText(vNode, parent, adjacent);
+	// This can only be hit by violating the types
+	return undefined!;
 }
 
+/**
+ * Execute a diff of VNodes, updating, unmounting, and mounting as needed.
+ * @param r The current RNode
+ * @param newVNode The replacement VNode.
+ * @param layer The current component layer.
+ * @returns The new RNode.  May be the same as r if an in-place update was done.
+ */
 export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
-	if (r.vNode === newVNode) {
+	const oldVNode = r.vNode;
+	if (oldVNode === newVNode) {
 		return r;
 	}
-	if (r.update(newVNode, layer)) {
+	if (r.constructor.guard(newVNode) && getVKey(oldVNode) === getVKey(newVNode) && r.update(newVNode as any, layer)) {
 		return r;
 	}
 	r.unmount(false);

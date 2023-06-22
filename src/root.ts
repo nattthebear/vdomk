@@ -1,6 +1,6 @@
 import { ComponentLayer, OPC } from "./Component";
 import type { VNode } from "./vdom";
-import { RText, RNode, SVG_NS, diff } from "./diff";
+import { RText } from "./diff";
 
 export interface RenderRoot {
 	/** Render new content in the root, diffing with existing content and unmounting/mounting new components as needed. */
@@ -9,10 +9,11 @@ export interface RenderRoot {
 	unmount(): void;
 }
 
+/** The capabilities provided by the render root to components */
 export interface RootComponentFunctions {
 	/** Schedules a layer for update */
 	enqueueLayer(layer: ComponentLayer): void;
-	/** Schedules a layer for update */
+	/** Schedules an effect to be run after this render cycle completes. */
 	enqueueEffect(effect: () => void): void;
 }
 
@@ -41,7 +42,7 @@ const RootComponent: OPC<{ children: VNode }> = ({ children }) => children;
  * Create a root to render VDom nodes in.
  * @param container the Element to render in
  * @param adjacent if passed, a direct child of container that the root will be inserted before.
- * @returns
+ * @returns The new root.
  */
 export function createRoot(container: Element, adjacent?: Node | null | undefined): RenderRoot {
 	let pendingLayers: ComponentLayer[] = [];

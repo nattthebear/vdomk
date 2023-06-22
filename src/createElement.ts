@@ -18,8 +18,12 @@ export function h(
 	props: Record<string, any> | null,
 	...children: any[]
 ): VElement | VComponent | VArray {
+	const key = props?.key;
 	if (type === Fragment) {
 		const ret: VArray = children.length > 0 ? children : props?.children ?? EMPTY_ARRAY;
+		if (key !== undefined) {
+			ret.key = key;
+		}
 		return ret;
 	}
 	if (children.length > 0) {
@@ -29,6 +33,7 @@ export function h(
 		const ret: VComponent = {
 			$type: "$VCo",
 			type,
+			key,
 			props,
 		};
 		return ret;
@@ -36,6 +41,7 @@ export function h(
 	const ret: VElement = {
 		$type: "$VEl",
 		type,
+		key,
 		props: props ?? EMPTY_OBJECT,
 	};
 	return ret;

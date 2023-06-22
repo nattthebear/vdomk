@@ -1,5 +1,13 @@
 const EVENT_REGEX = /^on([a-z]+?)(capture)?$/i;
 
+/**
+ * Set a prop on a DOM Element.  Might attach events, set DOM attributes, fire refs, or set DOM properties.
+ * @param element The Element to set a property on.
+ * @param key The property name.
+ * @param oldValue The value that was set in a previous diff or mount operation.  Will be `undefined` on mount, or if that value was not present in props.
+ * @param newValue The desired new value.  Will be `undefined` if that value is no longer present in props.
+ * @param isSvg If true, element is an svg element and some namespace or property type differences may be applied.
+ */
 export function setProperty(element: Element, key: string, oldValue: any, newValue: any, isSvg: boolean) {
 	if (oldValue === newValue) {
 		return;

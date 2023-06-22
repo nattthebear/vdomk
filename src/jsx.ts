@@ -1,7 +1,7 @@
 // JSX Types adapted from preact
 
 import type { Component } from "./Component";
-import type { VNode } from "./vdom";
+import type { KeyType, VNode } from "./vdom";
 
 type Booleanish = boolean | "true" | "false";
 
@@ -17,7 +17,7 @@ declare global {
 		export type LibraryManagedAttributes<Component, Props> = Props;
 
 		export interface IntrinsicAttributes {
-			key?: any;
+			key?: KeyType;
 		}
 		export type ElementType = keyof IntrinsicElements | Component<any>;
 		export type Element = VNode;
