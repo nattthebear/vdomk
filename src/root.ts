@@ -21,7 +21,6 @@ function compareLayers(x: ComponentLayer, y: ComponentLayer) {
 }
 
 type Deferrer = (cb: () => void) => void;
-
 const deferMicrotask: Deferrer = Promise.prototype.then.bind(Promise.resolve());
 const deferTask: Deferrer = (cb) => setTimeout(cb, 0);
 function triggerLast(cb: () => void) {
@@ -48,7 +47,7 @@ export function createRoot(container: Element, adjacent?: Node | null | undefine
 	let pendingLayers: ComponentLayer[] = [];
 	let unmounted = false;
 	let flushedRecently = false;
-	const endFlushedRecently = triggerLast(() => (flushedRecently = false));
+	const scheduleEndFlushedRecently = triggerLast(() => (flushedRecently = false));
 	const scheduleFlush = triggerLast(flush);
 	let pendingEffects: (() => void)[] | undefined;
 
@@ -57,7 +56,7 @@ export function createRoot(container: Element, adjacent?: Node | null | undefine
 			return;
 		}
 		flushedRecently = true;
-		endFlushedRecently(deferTask);
+		scheduleEndFlushedRecently(deferTask);
 
 		const todoLayers = pendingLayers;
 		pendingLayers = [];
