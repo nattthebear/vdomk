@@ -99,10 +99,11 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase {
 		if (!isVComponent(vNode) || this.vNode.type !== vNode.type) {
 			return false;
 		}
-		if (this.vNode.props !== vNode.props) {
+		const oldProps = this.vNode.props;
+		this.vNode = vNode;
+		if (oldProps !== vNode.props) {
 			this.layer.runUpdate(true);
 		}
-		this.vNode = vNode;
 		return true;
 	}
 }
@@ -136,6 +137,7 @@ export class RArray extends RNodeBase {
 		}
 		const { inSvg } = this;
 		const oldVNode = this.vNode;
+		this.vNode = vNode;
 		let i = 0;
 		for (; i < vNode.length && i < oldVNode.length; i++) {
 			this.children[i] = diff(this.children[i], vNode[i], layer, inSvg);
@@ -151,7 +153,6 @@ export class RArray extends RNodeBase {
 				this.children[i] = mount(vNode[i], parent, end, layer, inSvg);
 			}
 		}
-		this.vNode = vNode;
 		return true;
 	}
 }
