@@ -14,9 +14,8 @@ export interface VComponent<P extends Record<string, any> = any> {
 	props: P;
 }
 export type VArray = VNode[];
-export type VText = number | string;
-export type VNothing = boolean | null | undefined;
-export type VNode = VElement | VComponent | VArray | VText | VNothing;
+export type VText = number | string | boolean | null | undefined;
+export type VNode = VElement | VComponent | VArray | VText;
 
 export function isVElement(vNode: VNode): vNode is VElement {
 	return (vNode as any)?.$type === "$VEl";
@@ -29,11 +28,7 @@ export function isVArray(vNode: VNode): vNode is VArray {
 	return isArray(vNode);
 }
 export function isVText(vNode: VNode): vNode is VText {
-	const t = typeof vNode;
-	return t === "number" || t === "string";
-}
-export function isVNothing(vNode: VNode): vNode is VNothing {
-	return vNode == null || typeof vNode === "boolean";
+	return vNode == null || typeof vNode !== "object";
 }
 export function getVKey(vNode: VNode): KeyType {
 	return (vNode as any)?.key;

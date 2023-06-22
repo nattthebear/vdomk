@@ -1,6 +1,6 @@
 const EVENT_REGEX = /^on([a-z]+?)(capture)?$/i;
 
-export function setProperty(element: Element, key: string, oldValue: any, newValue: any, inSvg: boolean) {
+export function setProperty(element: Element, key: string, oldValue: any, newValue: any, isSvg: boolean) {
 	if (oldValue === newValue) {
 		return;
 	}
@@ -26,7 +26,7 @@ export function setProperty(element: Element, key: string, oldValue: any, newVal
 		return;
 	}
 
-	if (!inSvg && key in element) {
+	if (!isSvg && key in element) {
 		(element as any)[key] = newValue;
 		return;
 	}

@@ -2,6 +2,7 @@
 	"name": "vdomk",
 	"version": "0.1.0",
 	"description": "",
+	"homepage": "https://github.com/nattthebear/vdomk",
 	"type": "module",
 	"exports": "./build/index.js",
 	"module": "./build/index.js",
@@ -15,7 +16,6 @@
 		"build": "rimraf ./build && tsc -p ./tsconfig-build.json"
 	},
 	"author": "",
-	"license": "ISC",
 	"devDependencies": {
 		"@types/jsdom": "^21.1.1",
 		"husky": "^8.0.3",

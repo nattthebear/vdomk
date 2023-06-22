@@ -6,6 +6,13 @@ const EMPTY_OBJECT: Record<string, never> = {};
 
 export const Fragment = Symbol("vdomk.Fragment");
 
+export function h<K extends keyof JSX.IntrinsicElements>(
+	type: K,
+	props: JSX.IntrinsicElements[K] | null,
+	...children: VNode[]
+): VElement;
+export function h<P extends Record<string, any>>(type: Component<P>, props: P): VComponent<P>;
+export function h(type: typeof Fragment, props: { children?: VNode[] }): VArray;
 export function h(
 	type: Component<any> | string | typeof Fragment,
 	props: Record<string, any> | null,

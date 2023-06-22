@@ -1,5 +1,5 @@
-import { Heap } from "./Heap";
 import { RNode, diff } from "./diff";
+import type { RootComponentFunctions } from "./root";
 import type { VNode } from "./vdom";
 
 export interface Hooks {
@@ -11,29 +11,20 @@ export interface Hooks {
 	scheduleUpdate(): void;
 }
 
+/**
+ * One Phase Component.  Similar to a React hookless stateless component.
+ * The provided function is called for each rerender.
+ * Hooks may be used, but `cleanup` doesn't make much sense.
+ */
 export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNode;
+/**
+ * Two Phase Component.  The provided function is called once on mount,
+ * and then the function it returns is called for each rerender.
+ * The provided function is called for each rerender.
+ * Hooks are fully supported, but `cleanup` only makes sense on mount.
+ */
 export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
 export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
-
-const defer = Promise.prototype.then.bind(Promise.resolve());
-const pendingUpdates = new Heap(compareLayers);
-let updateCount = 0;
-function compareLayers(x: ComponentLayer, y: ComponentLayer) {
-	return x.depth < y.depth;
-}
-
-function deferFlush() {
-	const updateNumber = ++updateCount;
-	defer(() => {
-		if (updateNumber !== updateCount) {
-			return;
-		}
-		let layer: ComponentLayer | undefined;
-		while ((layer = pendingUpdates.remove())) {
-			layer.runUpdate();
-		}
-	});
-}
 
 export class ComponentLayer<P extends Record<string, any> = any> {
 	depth: number;
@@ -45,9 +36,9 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 	constructor(
 		public rNode: RNode,
 		public parent: ComponentLayer | undefined,
+		public root: RootComponentFunctions,
 		component: Component<P>,
-		public propsAccessor: () => P,
-		public inSvg: boolean
+		public propsAccessor: () => P
 	) {
 		this.depth = parent ? parent.depth + 1 : 0;
 		this.hooks = {
@@ -56,10 +47,7 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 					(this.cleanupQueue ??= []).push(cb);
 				}
 			},
-			effect: (cb) => {
-				// TODO
-				setTimeout(cb, 0);
-			},
+			effect: this.root.enqueueEffect,
 			scheduleUpdate: () => {
 				this.scheduleUpdate();
 			},
@@ -75,23 +63,21 @@ export class ComponentLayer<P extends Record<string, any> = any> {
 		}
 		this.finishUpdate(newVNode);
 	}
-	runUpdate() {
-		let newVNode: VNode;
-		newVNode = (0, this.component)(this.propsAccessor(), this.hooks);
-		this.pending = false;
-		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
+	runUpdate(force: boolean) {
+		if (this.alive && (this.pending || force)) {
+			this.finishUpdate((0, this.component)(this.propsAccessor(), this.hooks));
+		}
 	}
-	finishUpdate(newVNode: VNode) {
+	private finishUpdate(newVNode: VNode) {
 		this.pending = false;
-		this.rNode = diff(this.rNode, newVNode, this, this.inSvg);
+		this.rNode = diff(this.rNode, newVNode, this);
 	}
 	scheduleUpdate() {
 		if (!this.alive || this.pending) {
 			return;
 		}
 		this.pending = true;
-		pendingUpdates.insert(this);
-		deferFlush();
+		this.root.enqueueLayer(this);
 	}
 	unmount() {
 		this.alive = false;
