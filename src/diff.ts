@@ -28,22 +28,12 @@ abstract class RNodeBase {
 		}
 	}
 	moveTo(adjacent: Node | null) {
-		const parent = this.element.parentElement!;
 		const { element, end } = this;
-		if (!end) {
-			element.remove();
-			parent.insertBefore(element, adjacent);
-		} else {
-			for (let curr: ChildNode = element; ; ) {
-				const next = curr.nextSibling;
-				curr.remove();
-				parent.insertBefore(curr, adjacent);
-				if (curr === end) {
-					break;
-				}
-				curr = next!;
-			}
-		}
+		const parent = element.parentElement!;
+		const range = new Range();
+		range.setStartBefore(element);
+		range.setEndAfter(end ?? element);
+		parent.insertBefore(range.extractContents(), adjacent);
 	}
 }
 export class RElement extends RNodeBase {
