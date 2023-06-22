@@ -1,3 +1,5 @@
+// JSX Types adapted from preact
+
 import type { Component } from "./Component";
 import type { KeyType, VNode } from "./vdom";
 
