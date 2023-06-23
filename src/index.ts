@@ -12,7 +12,7 @@ export type {
 	RenderRoot,
 } from "./types";
 export { cleanup, effect, scheduleUpdate } from "./hooks";
-export { h, Fragment } from "./createElement";
+export { h, jsx, Fragment } from "./createElement";
 export { createRoot } from "./root";
 import "./jsx";
 

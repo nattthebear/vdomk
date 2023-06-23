@@ -4,7 +4,20 @@
 	"description": "",
 	"homepage": "https://github.com/nattthebear/vdomk",
 	"type": "module",
-	"exports": "./build/index.js",
+	"exports": {
+		".": {
+			"import": "./build/index.js",
+			"types": "./build/index.d.ts"
+		},
+		"./jsx-runtime": {
+			"import": "./build/jsx-runtime.js",
+			"types": "./build/jsx-runtime.d.ts"
+		},
+		"./jsx-dev-runtime": {
+			"import": "./build/jsx-runtime.js",
+			"types": "./build/jsx-runtime.d.ts"
+		}
+	},
 	"module": "./build/index.js",
 	"types": "./build/index.d.ts",
 	"files": [

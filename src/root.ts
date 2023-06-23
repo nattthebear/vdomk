@@ -1,6 +1,5 @@
 import type { OPC, RenderRoot, VNode, ComponentLayer } from "./types";
-import { RComponent, RText } from "./diff";
-import { h } from "./createElement";
+import { RComponent } from "./diff";
 
 function compareLayers(x: ComponentLayer, y: ComponentLayer) {
 	return x.depth - y.depth;
@@ -60,7 +59,7 @@ export function createRoot(container: Element, vNode: VNode, adjacent?: Node | n
 	};
 
 	const topLayer = new RComponent(
-		h(RootComponent, { rootNode: () => vNode }),
+		{ type: RootComponent, key: undefined, props: { rootNode: () => vNode } },
 		container,
 		adjacent ?? null,
 		dummyTopTopLayer

@@ -77,7 +77,7 @@ export class RElement extends RNodeBase<VElement> {
 		this.element = element;
 		const { props } = vNode;
 		for (const k in props) {
-			setProperty(element, k, undefined, props[k], this.svg);
+			setProperty(element, k, undefined, (props as any)[k], this.svg);
 		}
 		const { children } = props;
 		if (children !== undefined) {
@@ -99,11 +99,11 @@ export class RElement extends RNodeBase<VElement> {
 		const { element, svg } = this;
 		for (const k in oldProps) {
 			if (!(k in newProps)) {
-				setProperty(element, k, oldProps[k], undefined, svg);
+				setProperty(element, k, (oldProps as any)[k], undefined, svg);
 			}
 		}
 		for (const k in newProps) {
-			setProperty(element, k, oldProps[k], newProps[k], svg);
+			setProperty(element, k, (oldProps as any)[k], (newProps as any)[k], svg);
 		}
 		this.vNode = vNode;
 		const { children } = newProps;

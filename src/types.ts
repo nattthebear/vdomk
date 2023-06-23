@@ -3,15 +3,13 @@
 /** Used for keyed reconciliation */
 export type KeyType = string | number | symbol | null | undefined;
 /** VNode representing a DOM element */
-export interface VElement {
-	$type: "$VEl";
+export interface VElement<K extends keyof JSX.IntrinsicElements = keyof JSX.IntrinsicElements> {
 	type: string;
 	key: KeyType;
-	props: Record<string, any>;
+	props: JSX.IntrinsicElements[K];
 }
 /** VNode representing a function component */
 export interface VComponent<P extends Record<string, any> = any> {
-	$type: "$VCo";
 	type: Component<P>;
 	key: KeyType;
 	props: P;

@@ -1,10 +1,10 @@
 import type { VElement, VComponent, VArray, VText, VNode } from "./types";
 
 export function isVElement(vNode: VNode): vNode is VElement {
-	return (vNode as any)?.$type === "$VEl";
+	return typeof (vNode as any)?.type === "string";
 }
 export function isVComponent(vNode: VNode): vNode is VComponent {
-	return (vNode as any)?.$type === "$VCo";
+	return typeof (vNode as any)?.type === "function";
 }
 const { isArray } = Array;
 export function isVArray(vNode: VNode): vNode is VArray {
