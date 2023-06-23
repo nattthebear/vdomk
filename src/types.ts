@@ -50,8 +50,13 @@ export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 // Root Public ================================================================
 
 export interface RenderRoot {
-	/** Render new content in the root, diffing with existing content and unmounting/mounting new components as needed. */
-	render(newVNode: VNode): void;
+	/**
+	 * Render new content in the root, diffing with existing content and unmounting/mounting new components as needed.
+	 * This is scheduled asynchronously and participates with normal component render batching.
+	 * @param newVNode the new content to render
+	 * @returns a Promise that resolves after the content has been rendered
+	 */
+	render(newVNode: VNode): Promise<void>;
 	/** Unmount this root entirely, unmounting all child components and removing all nodes.  It can no longer be used. */
 	unmount(): void;
 }
