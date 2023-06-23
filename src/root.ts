@@ -56,6 +56,7 @@ export function createRoot(container: Element, vNode: VNode, adjacent?: Node | n
 		parentLayer: undefined,
 		root: { enqueueLayer, enqueueEffect },
 		depth: -1,
+		context: undefined,
 	};
 
 	const topLayer = new RComponent(

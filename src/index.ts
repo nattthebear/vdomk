@@ -15,3 +15,6 @@ export { cleanup, effect, scheduleUpdate } from "./hooks";
 export { h, Fragment } from "./createElement";
 export { createRoot } from "./root";
 import "./jsx";
+
+export type { Provider, Subscribe, Context } from "./context";
+export { createContext } from "./context";

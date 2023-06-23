@@ -75,4 +75,5 @@ export interface ComponentLayer {
 	parentLayer: ComponentLayer | undefined;
 	root: RootComponentFunctions;
 	depth: number;
+	context: import("./context").ContextData | undefined;
 }

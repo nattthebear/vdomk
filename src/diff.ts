@@ -131,6 +131,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 	pending = true;
 	cleanupQueue: (() => void)[] | undefined;
 	opc: OPC<P>;
+	context: import("./context").ContextData | undefined;
 	static guard = isVComponent;
 	constructor(public vNode: VComponent<P>, parent: Element, adjacent: Node | null, parentLayer: ComponentLayer) {
 		super();
