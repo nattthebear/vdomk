@@ -10,7 +10,13 @@ export function h<K extends keyof JSX.IntrinsicElements>(
 	props: JSX.IntrinsicElements[K] | null,
 	...children: VNode[]
 ): VElement<K>;
+export function h(type: string, props: JSX.HTMLAttributes<HTMLElement> | null, ...children: VNode[]): VElement;
 export function h<P extends Record<string, any>>(type: Component<P>, props: P): VComponent<P>;
+export function h<P extends { children: any[] }>(
+	type: Component<P>,
+	props: Omit<P, "children">,
+	...children: P["children"]
+): VComponent<P>;
 export function h(type: typeof Fragment, props: { children?: VNode[] }): VArray;
 export function h(
 	type: Component<any> | string | typeof Fragment,
@@ -37,6 +43,7 @@ export function jsx<K extends keyof JSX.IntrinsicElements>(
 	props: JSX.IntrinsicElements[K],
 	key?: KeyType
 ): VElement<K>;
+export function jsx(type: string, props: JSX.HTMLAttributes<HTMLElement>, key?: KeyType): VElement;
 export function jsx<P extends Record<string, any>>(type: Component<P>, props: P, key?: KeyType): VComponent<P>;
 export function jsx(type: typeof Fragment, props: { children: VNode[] }, key?: KeyType): VArray;
 export function jsx(
