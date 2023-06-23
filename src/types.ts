@@ -25,13 +25,11 @@ export type VNode = VElement | VComponent | VArray | VText;
 
 // Component Public ===========================================================
 
-export interface Hooks {
-	/** Registers a function to be called when this component is unmounted. */
-	cleanup(cb: () => void): void;
-	/** Calls a function in the effect phase after this render completes. */
-	effect(cb: () => void): void;
-	/** Schedules a rerender of this component. */
-	scheduleUpdate(): void;
+declare const LayerBrand: unique symbol;
+
+/** The component context that hooks need to work with.  Has no publicly accessible methods. */
+export interface ComponentContext {
+	brand: typeof LayerBrand;
 }
 
 /**
@@ -39,14 +37,14 @@ export interface Hooks {
  * The provided function is called for each rerender.
  * Hooks may be used, but `cleanup` doesn't make much sense.
  */
-export type OPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => VNode;
+export type OPC<P extends Record<string, any>> = (props: P, instance: ComponentContext) => VNode;
 /**
  * Two Phase Component.  The provided function is called once on mount,
  * and then the function it returns is called for each rerender.
  * The provided function is called for each rerender.
  * Hooks are fully supported, but `cleanup` only makes sense on mount.
  */
-export type TPC<P extends Record<string, any>> = (props: P, hooks: Hooks) => OPC<P>;
+export type TPC<P extends Record<string, any>> = (props: P, instance: ComponentContext) => OPC<P>;
 export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 
 // Root Public ================================================================
@@ -56,4 +54,20 @@ export interface RenderRoot {
 	render(newVNode: VNode): void;
 	/** Unmount this root entirely, unmounting all child components and removing all nodes.  It can no longer be used. */
 	unmount(): void;
+}
+
+// Private ====================================================================
+
+/** The capabilities provided by the render root to components */
+export interface RootComponentFunctions {
+	/** Schedules a layer for update */
+	enqueueLayer(layer: import("./diff").RComponent<any>): void;
+	/** Schedules an effect to be run after this render cycle completes. */
+	enqueueEffect(effect: () => void): void;
+}
+
+export interface ComponentLayer {
+	parentLayer: ComponentLayer | undefined;
+	root: RootComponentFunctions;
+	depth: number;
 }

@@ -1,7 +1,17 @@
 import type { AssertTrue, Has } from "conditional-type-checks";
-import { ComponentLayer } from "./Component";
 import { setProperty } from "./props";
-import type { VNode, VElement, VComponent, VArray, VText, KeyType } from "./types";
+import type {
+	VNode,
+	VElement,
+	VComponent,
+	VArray,
+	VText,
+	KeyType,
+	ComponentLayer,
+	RootComponentFunctions,
+	OPC,
+	ComponentContext,
+} from "./types";
 import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
@@ -110,25 +120,67 @@ export class RElement extends RNodeBase<VElement> {
 }
 type __CHECKRComponent = AssertTrue<Has<typeof RComponent, RNodeFactory<VComponent>>>;
 /** RNode representing a VComponent */
-export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> {
-	layer: ComponentLayer<P>;
+export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> implements ComponentLayer {
+	parentLayer: ComponentLayer | undefined;
+	root: RootComponentFunctions;
+	layerRNode: RNode;
+	depth: number;
 	element = new Text();
 	end = new Text();
+	alive = true;
+	pending = true;
+	cleanupQueue: (() => void)[] | undefined;
+	opc: OPC<P>;
 	static guard = isVComponent;
 	constructor(public vNode: VComponent<P>, parent: Element, adjacent: Node | null, parentLayer: ComponentLayer) {
 		super();
 		parent.insertBefore(this.element, adjacent);
-		this.layer = new ComponentLayer(
-			new RText(undefined, parent, adjacent),
-			parentLayer,
-			parentLayer.root,
-			vNode.type,
-			() => this.vNode.props
-		);
+		this.parentLayer = parentLayer;
+		this.root = parentLayer.root;
+		this.depth = parentLayer.depth + 1;
+
+		const { type, props } = vNode;
+		let newLayerVNode: VNode;
+		const res = type(props, this as unknown as ComponentContext);
+		if (typeof res === "function") {
+			this.opc = res;
+			newLayerVNode = res(props, this as unknown as ComponentContext);
+		} else {
+			this.opc = type as OPC<P>;
+			newLayerVNode = res;
+		}
+		this.layerRNode = new RText(undefined, parent, adjacent);
+		this.finishLayerUpdate(newLayerVNode);
+
 		parent.insertBefore(this.end, adjacent);
 	}
+
+	runLayerUpdate(force: boolean) {
+		if (this.alive && (this.pending || force)) {
+			this.finishLayerUpdate((0, this.opc)(this.vNode.props, this as unknown as ComponentContext));
+		}
+	}
+	private finishLayerUpdate(newLayerVNode: VNode) {
+		this.pending = false;
+		this.layerRNode = diff(this.layerRNode, newLayerVNode, this);
+	}
+	scheduleLayerUpdate() {
+		if (!this.alive || this.pending) {
+			return;
+		}
+		this.pending = true;
+		this.root.enqueueLayer(this);
+	}
+
 	unmount(removeSelf: boolean) {
-		this.layer.unmount();
+		this.alive = false;
+		const { cleanupQueue } = this;
+		if (cleanupQueue) {
+			for (let i = cleanupQueue.length - 1; i >= 0; i--) {
+				cleanupQueue[i]();
+			}
+		}
+		this.layerRNode.unmount(true);
 		super.unmount(removeSelf);
 	}
 	update(vNode: VComponent) {
@@ -138,7 +190,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 		const oldProps = this.vNode.props;
 		this.vNode = vNode;
 		if (oldProps !== vNode.props) {
-			this.layer.runUpdate(true);
+			this.runLayerUpdate(true);
 		}
 		return true;
 	}

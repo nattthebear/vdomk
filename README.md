@@ -7,7 +7,7 @@ This is an experimental React-like view layer. It's intended only as a research 
 Todos example:
 
 ```typescript
-import { h, Fragment, createRoot, TPC, OPC } from "vdomk";
+import { h, Fragment, createRoot, TPC, OPC, scheduleUpdate } from "vdomk";
 
 const Todo: OPC<{ text: string; done: boolean; toggle(): void; remove(): void }> = ({ text, done, toggle, remove }) => {
 	return (
@@ -21,7 +21,7 @@ const Todo: OPC<{ text: string; done: boolean; toggle(): void; remove(): void }>
 	);
 };
 
-const TodoApp: TPC<{}> = (_, { scheduleUpdate }) => {
+const TodoApp: TPC<{}> = (_, instance) => {
 	let todos: { text: string; done: boolean }[] = [];
 	let text = "";
 	let input: HTMLInputElement | null = null;
@@ -36,15 +36,15 @@ const TodoApp: TPC<{}> = (_, { scheduleUpdate }) => {
 		todos.push({ text, done: false });
 		text = "";
 		input!.value = ""; // Inputs are uncontrolled
-		scheduleUpdate();
+		scheduleUpdate(instance);
 	}
 	function handleToggle(index: number) {
 		todos[index].done = !todos[index].done;
-		scheduleUpdate();
+		scheduleUpdate(instance);
 	}
 	function handleRemove(index: number) {
 		todos.splice(index, 1);
-		scheduleUpdate();
+		scheduleUpdate(instance);
 	}
 
 	return () => {

@@ -1,14 +1,6 @@
-import type { OPC, RenderRoot, VNode } from "./types";
-import { ComponentLayer } from "./Component";
-import { RText } from "./diff";
-
-/** The capabilities provided by the render root to components */
-export interface RootComponentFunctions {
-	/** Schedules a layer for update */
-	enqueueLayer(layer: ComponentLayer): void;
-	/** Schedules an effect to be run after this render cycle completes. */
-	enqueueEffect(effect: () => void): void;
-}
+import type { OPC, RenderRoot, VNode, ComponentLayer } from "./types";
+import { RComponent, RText } from "./diff";
+import { h } from "./createElement";
 
 function compareLayers(x: ComponentLayer, y: ComponentLayer) {
 	return x.depth - y.depth;
@@ -29,7 +21,7 @@ function triggerLast(cb: () => void) {
 	};
 }
 
-const RootComponent: OPC<{ children: VNode }> = ({ children }) => children;
+const RootComponent: OPC<{ rootNode: () => VNode }> = ({ rootNode }) => rootNode();
 
 /**
  * Create a root to render VDom nodes in.
@@ -38,7 +30,7 @@ const RootComponent: OPC<{ children: VNode }> = ({ children }) => children;
  * @returns The new root.
  */
 export function createRoot(container: Element, adjacent?: Node | null | undefined): RenderRoot {
-	let pendingLayers: ComponentLayer[] = [];
+	let pendingLayers: RComponent<any>[] = [];
 	let unmounted = false;
 	let flushedRecently = false;
 	const scheduleEndFlushedRecently = triggerLast(() => (flushedRecently = false));
@@ -57,7 +49,7 @@ export function createRoot(container: Element, adjacent?: Node | null | undefine
 		todoLayers.sort(compareLayers);
 		pendingEffects = [];
 		for (const layer of todoLayers) {
-			layer.runUpdate(false);
+			layer.runLayerUpdate(false);
 		}
 
 		while (pendingEffects.length) {
@@ -71,7 +63,7 @@ export function createRoot(container: Element, adjacent?: Node | null | undefine
 		pendingEffects = undefined;
 	}
 
-	function enqueueLayer(layer: ComponentLayer) {
+	function enqueueLayer(layer: RComponent<any>) {
 		pendingLayers.push(layer);
 		scheduleFlush(flushedRecently ? deferMicrotask : deferTask);
 	}
@@ -79,24 +71,29 @@ export function createRoot(container: Element, adjacent?: Node | null | undefine
 		pendingEffects?.push(effect) ?? effect();
 	}
 
+	const dummyTopTopLayer: ComponentLayer = {
+		parentLayer: undefined,
+		root: { enqueueLayer, enqueueEffect },
+		depth: -1,
+	};
+
 	let vNode: VNode;
-	const topLayer = new ComponentLayer(
-		new RText(undefined, container, adjacent ?? null),
-		undefined,
-		{ enqueueLayer, enqueueEffect },
-		RootComponent,
-		() => ({ children: vNode })
+	const topLayer = new RComponent(
+		h(RootComponent, { rootNode: () => vNode }),
+		container,
+		adjacent ?? null,
+		dummyTopTopLayer
 	);
 
 	return {
 		render(newVNode) {
 			vNode = newVNode;
-			topLayer.scheduleUpdate();
+			topLayer.scheduleLayerUpdate();
 			flush();
 		},
 		unmount() {
 			unmounted = true;
-			topLayer.unmount();
+			topLayer.unmount(true);
 		},
 	};
 }
