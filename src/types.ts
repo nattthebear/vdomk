@@ -4,7 +4,7 @@
 export type KeyType = string | number | symbol | null | undefined;
 /** VNode representing a DOM element */
 export interface VElement<K extends keyof JSX.IntrinsicElements = keyof JSX.IntrinsicElements> {
-	type: string;
+	type: K;
 	key: KeyType;
 	props: JSX.IntrinsicElements[K];
 }
