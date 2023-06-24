@@ -1,4 +1,3 @@
-import type { AssertTrue, Has } from "conditional-type-checks";
 import { setProperty } from "./props";
 import type {
 	VNode,
@@ -60,7 +59,6 @@ abstract class RNodeBase<T extends VNode> {
 		parent.insertBefore(range.extractContents(), adjacent);
 	}
 }
-type __CHECKRElement = AssertTrue<Has<typeof RElement, RNodeFactory<VElement>>>;
 /** RNode representing a VElement */
 export class RElement extends RNodeBase<VElement> {
 	children: RNode | undefined;
@@ -118,7 +116,6 @@ export class RElement extends RNodeBase<VElement> {
 		return true;
 	}
 }
-type __CHECKRComponent = AssertTrue<Has<typeof RComponent, RNodeFactory<VComponent>>>;
 /** RNode representing a VComponent */
 export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> implements ComponentLayer {
 	parentLayer: ComponentLayer | undefined;
@@ -196,7 +193,6 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 		return true;
 	}
 }
-type __CHECKRArray = AssertTrue<Has<typeof RArray, RNodeFactory<VArray>>>;
 /** RNode representing a VArray */
 export class RArray extends RNodeBase<VArray> {
 	children: RNode[];
@@ -312,7 +308,6 @@ function toText(vNode: VText) {
 	}
 	return String(vNode);
 }
-type __CHECKRText = AssertTrue<Has<typeof RText, RNodeFactory<VText>>>;
 /** RNode representing a VText */
 export class RText extends RNodeBase<VText> {
 	element: Text;
@@ -344,7 +339,12 @@ export interface RText {
 }
 export type RNode = RElement | RComponent<any> | RArray | RText;
 
-const factories: RNodeFactory<any>[] = [RElement, RComponent, RArray, RText];
+const factories: RNodeFactory<any>[] = [
+	RElement satisfies RNodeFactory<VElement>,
+	RComponent satisfies RNodeFactory<VComponent>,
+	RArray satisfies RNodeFactory<VArray>,
+	RText satisfies RNodeFactory<VText>,
+];
 
 /**
  * Mount a VNode, returning an RNode representing the rendering of it into the DOM.
