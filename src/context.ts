@@ -2,7 +2,10 @@ import { cleanup, scheduleUpdate } from "./hooks";
 import type { Component, LayerInstance, ComponentLayer, VNode } from "./types";
 
 export type Provider<T> = Component<{ value: T; children: VNode }>;
-export type Subscribe<T> = (instance: LayerInstance) => () => T;
+export type Subscribe<T> = {
+	<S>(instance: LayerInstance, selector: (input: T) => S, equal?: (x: S, y: S) => boolean): () => S;
+	(instance: LayerInstance, selector?: undefined, equal?: (x: T, y: T) => boolean): () => T;
+};
 
 export interface Context<T> {
 	Provider: Provider<T>;
@@ -15,8 +18,7 @@ export interface ContextData<T = unknown> {
 	subs: Set<() => void>;
 }
 
-export function createContext<T>(defaultValue: T, equal?: (x: T, y: T) => boolean): Context<T> {
-	equal ??= Object.is;
+export function createContext<T>(defaultValue: T, equal: (x: T, y: T) => boolean = Object.is): Context<T> {
 	const ret: Context<T> = {
 		Provider({ value }, instance) {
 			const data: ContextData<T> = {
@@ -27,7 +29,7 @@ export function createContext<T>(defaultValue: T, equal?: (x: T, y: T) => boolea
 			(instance as any as ComponentLayer).context = data as ContextData<unknown>;
 			return (nextProps) => {
 				const newValue = nextProps.value;
-				if (!equal!(data.value, newValue)) {
+				if (!equal(data.value, newValue)) {
 					data.value = newValue;
 					for (const sub of data.subs) {
 						sub();
@@ -36,19 +38,29 @@ export function createContext<T>(defaultValue: T, equal?: (x: T, y: T) => boolea
 				return nextProps.children;
 			};
 		},
-		subscribe(instance) {
+		subscribe(instance: LayerInstance, selector = (v: any) => v, equal = Object.is) {
 			for (let layer = instance as any as ComponentLayer | undefined; layer; layer = layer.parentLayer) {
 				const { context } = layer;
 				if (context?.type === ret) {
+					const accessor = () => selector(context.value);
+					let value = accessor();
 					function sub() {
-						scheduleUpdate(instance);
+						let shouldUpdate = true;
+						try {
+							shouldUpdate = !equal(value, accessor());
+						} catch {
+							// https://react-redux.js.org/api/hooks#stale-props-and-zombie-children
+						}
+						if (shouldUpdate) {
+							scheduleUpdate(instance);
+						}
 					}
 					context.subs.add(sub);
 					cleanup(instance, () => context.subs.delete(sub));
-					return () => context.value as T;
+					return () => (value = accessor());
 				}
 			}
-			return () => defaultValue;
+			return () => selector(defaultValue);
 		},
 	};
 	return ret;
