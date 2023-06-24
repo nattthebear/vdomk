@@ -10,12 +10,12 @@ const RootComponent: OPC<{ rootNode: () => VNode }> = ({ rootNode }) => rootNode
 /**
  * Create a root to render VDom nodes in.
  * @param container the Element to render in
- * @param vNode the initial content to render.
+ * @param initialVNode the initial content to render.
  * @param adjacent if passed, a direct child of container that the root will be inserted before.
  *   If not present, the root will be placed at the end of the container.
  * @returns The new root.
  */
-export function createRoot(container: Element, vNode: VNode, adjacent?: Node | null | undefined): RenderRoot {
+export function createRoot(container: Element, initialVNode: VNode, adjacent?: Node | null | undefined): RenderRoot {
 	let pendingLayers: RComponent<any>[] = [];
 	let unmounted = false;
 	let pendingEffects: (() => void)[] | undefined;
@@ -58,12 +58,16 @@ export function createRoot(container: Element, vNode: VNode, adjacent?: Node | n
 		context: undefined,
 	};
 
+	let vNode: VNode;
 	const topLayer = new RComponent(
 		{ type: RootComponent, key: undefined, props: { rootNode: () => vNode } },
 		container,
 		adjacent ?? null,
 		dummyTopTopLayer
 	);
+	vNode = initialVNode;
+	topLayer.scheduleLayerUpdate();
+	flush();
 
 	return {
 		async render(newVNode) {
