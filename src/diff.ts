@@ -9,7 +9,7 @@ import type {
 	ComponentLayer,
 	RootComponentFunctions,
 	OPC,
-	ComponentContext,
+	LayerInstance,
 } from "./types";
 import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 
@@ -139,10 +139,10 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 
 		const { type, props } = vNode;
 		let newLayerVNode: VNode;
-		const res = type(props, this as unknown as ComponentContext);
+		const res = type(props, this as unknown as LayerInstance);
 		if (typeof res === "function") {
 			this.opc = res;
-			newLayerVNode = res(props, this as unknown as ComponentContext);
+			newLayerVNode = res(props, this as unknown as LayerInstance);
 		} else {
 			this.opc = type as OPC<P>;
 			newLayerVNode = res;
@@ -155,7 +155,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 
 	runLayerUpdate(force: boolean) {
 		if (this.alive && (this.pending || force)) {
-			this.finishLayerUpdate((0, this.opc)(this.vNode.props, this as unknown as ComponentContext));
+			this.finishLayerUpdate((0, this.opc)(this.vNode.props, this as unknown as LayerInstance));
 		}
 	}
 	private finishLayerUpdate(newLayerVNode: VNode) {

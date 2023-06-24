@@ -26,7 +26,7 @@ export type VNode = VElement | VComponent | VArray | VText;
 declare const LayerBrand: unique symbol;
 
 /** The component context that hooks need to work with.  Has no publicly accessible methods. */
-export interface ComponentContext {
+export interface LayerInstance {
 	brand: typeof LayerBrand;
 }
 
@@ -35,14 +35,14 @@ export interface ComponentContext {
  * The provided function is called for each rerender.
  * Hooks may be used, but `cleanup` doesn't make much sense.
  */
-export type OPC<P extends Record<string, any>> = (props: P, instance: ComponentContext) => VNode;
+export type OPC<P extends Record<string, any>> = (props: P, instance: LayerInstance) => VNode;
 /**
  * Two Phase Component.  The provided function is called once on mount,
  * and then the function it returns is called for each rerender.
  * The provided function is called for each rerender.
  * Hooks are fully supported, but `cleanup` only makes sense on mount.
  */
-export type TPC<P extends Record<string, any>> = (props: P, instance: ComponentContext) => OPC<P>;
+export type TPC<P extends Record<string, any>> = (props: P, instance: LayerInstance) => OPC<P>;
 export type Component<P extends Record<string, any>> = OPC<P> | TPC<P>;
 
 // Root Public ================================================================

@@ -1,8 +1,8 @@
 import { cleanup, scheduleUpdate } from "./hooks";
-import type { Component, ComponentContext, ComponentLayer, VNode } from "./types";
+import type { Component, LayerInstance, ComponentLayer, VNode } from "./types";
 
 export type Provider<T> = Component<{ value: T; children: VNode }>;
-export type Subscribe<T> = (instance: ComponentContext) => () => T;
+export type Subscribe<T> = (instance: LayerInstance) => () => T;
 
 export interface Context<T> {
 	Provider: Provider<T>;

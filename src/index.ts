@@ -5,7 +5,7 @@ export type {
 	VArray,
 	VText,
 	VNode,
-	ComponentContext,
+	LayerInstance,
 	OPC,
 	TPC,
 	Component,
