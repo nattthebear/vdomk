@@ -128,7 +128,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 		super();
 		parent.insertBefore(this.element, adjacent);
 		this.parentLayer = parentLayer;
-		this.depth = (parentLayer?.depth ?? 0) + 1;
+		this.depth = (parentLayer?.depth ?? -1) + 1;
 
 		const { type, props } = vNode;
 		let newLayerVNode: VNode;
