@@ -1,16 +1,6 @@
 import { setProperty } from "./props";
-import type {
-	VNode,
-	VElement,
-	VComponent,
-	VArray,
-	VText,
-	KeyType,
-	ComponentLayer,
-	RootComponentFunctions,
-	OPC,
-	LayerInstance,
-} from "./types";
+import { enqueueLayer } from "./root";
+import type { VNode, VElement, VComponent, VArray, VText, KeyType, ComponentLayer, OPC, LayerInstance } from "./types";
 import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
@@ -119,7 +109,6 @@ export class RElement extends RNodeBase<VElement> {
 /** RNode representing a VComponent */
 export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> implements ComponentLayer {
 	parentLayer: ComponentLayer | undefined;
-	root: RootComponentFunctions;
 	layerRNode: RNode;
 	depth: number;
 	element = new Text();
@@ -130,12 +119,16 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 	opc: OPC<P>;
 	context: import("./context").ContextData | undefined;
 	static guard = isVComponent;
-	constructor(public vNode: VComponent<P>, parent: Element, adjacent: Node | null, parentLayer: ComponentLayer) {
+	constructor(
+		public vNode: VComponent<P>,
+		parent: Element,
+		adjacent: Node | null,
+		parentLayer: ComponentLayer | undefined
+	) {
 		super();
 		parent.insertBefore(this.element, adjacent);
 		this.parentLayer = parentLayer;
-		this.root = parentLayer.root;
-		this.depth = parentLayer.depth + 1;
+		this.depth = (parentLayer?.depth ?? 0) + 1;
 
 		const { type, props } = vNode;
 		let newLayerVNode: VNode;
@@ -167,7 +160,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 			return;
 		}
 		this.pending = true;
-		this.root.enqueueLayer(this);
+		enqueueLayer(this);
 	}
 
 	unmount(removeSelf: boolean) {

@@ -61,17 +61,8 @@ export interface RenderRoot {
 
 // Private ====================================================================
 
-/** The capabilities provided by the render root to components */
-export interface RootComponentFunctions {
-	/** Schedules a layer for update */
-	enqueueLayer(layer: import("./diff").RComponent<any>): void;
-	/** Schedules an effect to be run after this render cycle completes. */
-	enqueueEffect(effect: () => void): void;
-}
-
 export interface ComponentLayer {
 	parentLayer: ComponentLayer | undefined;
-	root: RootComponentFunctions;
 	depth: number;
 	context: import("./context").ContextData | undefined;
 }
