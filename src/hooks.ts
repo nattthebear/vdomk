@@ -12,7 +12,7 @@ export function cleanup(instance: LayerInstance, cb: () => void) {
 }
 /** Calls a function in the effect phase after this render completes. */
 export function effect(instance: LayerInstance, cb: () => void) {
-	enqueueEffect(cb);
+	enqueueEffect(instance as any as RComponent<any>, cb);
 }
 /** Schedules a rerender of this component. */
 export function scheduleUpdate(instance: LayerInstance) {

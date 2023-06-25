@@ -1,12 +1,15 @@
 import type { OPC, RenderRoot, VNode, ComponentLayer } from "./types";
 import { RComponent } from "./diff";
 
-function compareLayers(x: ComponentLayer, y: ComponentLayer) {
-	return x.depth - y.depth;
+const compareLayers = (x: ComponentLayer, y: ComponentLayer) => x.depth - y.depth;
+interface PendingEffect {
+	depth: number;
+	cb: () => void;
 }
+const compareEffects = (x: PendingEffect, y: PendingEffect) => y.depth - x.depth;
 
 let pendingLayers: RComponent<any>[] = [];
-let pendingEffects: (() => void)[] | undefined;
+let pendingEffects: PendingEffect[] | undefined;
 
 function flush() {
 	while (pendingLayers.length) {
@@ -21,8 +24,9 @@ function flush() {
 		while (pendingEffects.length) {
 			const todoEffects = pendingEffects;
 			pendingEffects = [];
-			for (let i = todoEffects.length - 1; i >= 0; i--) {
-				todoEffects[i]();
+			todoEffects.sort(compareEffects);
+			for (const { cb } of todoEffects) {
+				cb();
 			}
 		}
 
@@ -72,6 +76,6 @@ export async function enqueueLayer(layer: RComponent<any>) {
 	flush();
 }
 /** Schedules an effect to be run after this render cycle completes. */
-export function enqueueEffect(effect: () => void) {
-	pendingEffects?.push(effect) ?? effect();
+export function enqueueEffect(layer: RComponent<any>, effect: () => void) {
+	pendingEffects?.push({ depth: layer.depth, cb: effect }) ?? effect();
 }
