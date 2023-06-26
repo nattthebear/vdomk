@@ -6,14 +6,14 @@ import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 export const SVG_NS = "http://www.w3.org/2000/svg";
 const { min } = Math;
 /** Factory to instantiate an RNode type */
-interface RNodeFactory<T extends VNode> {
+export interface RNodeFactory<T extends VNode> {
 	/** Validate that the VNode is of the right type for this factory */
 	guard(vNode: VNode): vNode is T;
 	/** Create the RNode */
 	new (vNode: T, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode & RNodeBase<T>;
 }
 /** Tracks a VNode that's currently rendered into the document */
-abstract class RNodeBase<T extends VNode> {
+export abstract class RNodeBase<T extends VNode> {
 	/** The VNode currently rendered by this RNode */
 	abstract vNode: VNode;
 	/** The DOM Node that represents the start of content for this VNode */
@@ -330,9 +330,16 @@ export interface RArray {
 export interface RText {
 	constructor: typeof RText & RNodeFactory<VText>;
 }
-export type RNode = RElement | RComponent<any> | RArray | RText;
+export interface RNodeTypes {
+	element: RElement;
+	component: RComponent<any>;
+	array: RArray;
+	text: RText;
+}
+export type RNode = RNodeTypes[keyof RNodeTypes];
 
-const factories: RNodeFactory<any>[] = [
+/** List of all RNode creators.  Extend to add a new RNode type. */
+export const rNodeFactories: RNodeFactory<any>[] = [
 	RElement satisfies RNodeFactory<VElement>,
 	RComponent satisfies RNodeFactory<VComponent>,
 	RArray satisfies RNodeFactory<VArray>,
@@ -347,8 +354,8 @@ const factories: RNodeFactory<any>[] = [
  * @param layer The current component layer.
  * @returns
  */
-function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
-	for (const clazz of factories) {
+export function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
+	for (const clazz of rNodeFactories) {
 		if (clazz.guard(vNode)) {
 			return new clazz(vNode, parent, adjacent, layer);
 		}

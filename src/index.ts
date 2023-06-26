@@ -18,3 +18,6 @@ import "./jsx";
 
 export type { Provider, Subscribe, Context } from "./context";
 export { createContext } from "./context";
+
+export type { PortalProps, VPortal } from "./portal";
+export { Portal, createPortal } from "./portal";

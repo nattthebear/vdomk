@@ -19,7 +19,17 @@ export type VArray = VNode[] & { key?: KeyType };
 /** VNode for raw text content.  Boolean or nullish will render nothing at all. */
 export type VText = number | string | boolean | null | undefined;
 /** The sum type for all renderable things.  VNodes should be treated as opaque and immutable. */
-export type VNode = VElement | VComponent | VArray | VText;
+export type VNode = VNodeTypes[keyof VNodeTypes];
+
+// VDOM Private ===============================================================
+
+/** All VNode types; add more with decl merging */
+export interface VNodeTypes {
+	element: VElement;
+	component: VComponent;
+	array: VArray;
+	text: VText;
+}
 
 // Component Public ===========================================================
 
