@@ -1,3 +1,5 @@
+import { enqueueEffect } from "./root";
+
 const EVENT_REGEX = /^on([a-z]+?)(capture)?$/i;
 
 /**
@@ -7,8 +9,16 @@ const EVENT_REGEX = /^on([a-z]+?)(capture)?$/i;
  * @param oldValue The value that was set in a previous diff or mount operation.  Will be `undefined` on mount, or if that value was not present in props.
  * @param newValue The desired new value.  Will be `undefined` if that value is no longer present in props.
  * @param isSvg If true, element is an svg element and some namespace or property type differences may be applied.
+ * @param depth The layer depth to execute ref effects at.
  */
-export function setProperty(element: Element, key: string, oldValue: any, newValue: any, isSvg: boolean) {
+export function setProperty(
+	element: Element,
+	key: string,
+	oldValue: any,
+	newValue: any,
+	isSvg: boolean,
+	depth: number
+) {
 	if (oldValue === newValue) {
 		return;
 	}
@@ -17,7 +27,7 @@ export function setProperty(element: Element, key: string, oldValue: any, newVal
 	}
 	if (key === "ref") {
 		oldValue?.(null);
-		newValue?.(element);
+		enqueueEffect(depth, () => newValue?.(element));
 		return;
 	}
 

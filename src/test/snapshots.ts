@@ -9,19 +9,19 @@ let activeIndex = 0;
 export function describe(
 	suiteName: string,
 	location: string,
-	suite: (it: (name: string, test: () => void) => void) => void
+	suite: (it: (name: string, test: () => void | Promise<void>) => void) => void
 ) {
 	activeFile = location;
 	activeSuite = suiteName;
-	function it(testName: string, test: () => void) {
+	function it(testName: string, test: () => void | Promise<void>) {
 		activeTest = testName;
 		activeIndex = 0;
-		baseIt(testName, () => {
+		baseIt(testName, async () => {
 			activeFile = location;
 			activeSuite = suiteName;
 			activeTest = testName;
 			activeIndex = 0;
-			test();
+			await test();
 		});
 	}
 	baseDescribe(suiteName, () => suite(it));

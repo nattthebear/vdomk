@@ -108,6 +108,7 @@
 	},
 	"ts-node": {
 		"experimentalSpecifierResolution": "node",
-		"files": true
+		"files": true,
+		"transpileOnly": true
 	}
 }

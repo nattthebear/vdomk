@@ -76,6 +76,6 @@ export async function enqueueLayer(layer: RComponent) {
 	flush();
 }
 /** Schedules an effect to be run after this render cycle completes. */
-export function enqueueEffect(layer: RComponent, effect: () => void) {
-	pendingEffects?.push({ depth: layer.depth, cb: effect }) ?? effect();
+export function enqueueEffect(depth: number, effect: () => void) {
+	pendingEffects?.push({ depth, cb: effect }) ?? effect();
 }
