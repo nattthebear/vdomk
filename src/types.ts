@@ -68,11 +68,3 @@ export interface RenderRoot {
 	/** Unmount this root entirely, unmounting all child components and removing all nodes.  It can no longer be used. */
 	unmount(): void;
 }
-
-// Private ====================================================================
-
-export interface ComponentLayer {
-	parentLayer: ComponentLayer | undefined;
-	depth: number;
-	context: import("./context").ContextData | undefined;
-}

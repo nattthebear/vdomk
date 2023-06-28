@@ -1,6 +1,6 @@
 import { setProperty } from "./props";
 import { enqueueLayer } from "./root";
-import type { VNode, VElement, VComponent, VArray, VText, KeyType, ComponentLayer, OPC, LayerInstance } from "./types";
+import type { VNode, VElement, VComponent, VArray, VText, KeyType, OPC, LayerInstance } from "./types";
 import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 
 export const SVG_NS = "http://www.w3.org/2000/svg";
@@ -10,7 +10,7 @@ export interface RNodeFactory<T extends VNode> {
 	/** Validate that the VNode is of the right type for this factory */
 	guard(vNode: VNode): vNode is T;
 	/** Create the RNode */
-	new (vNode: T, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode & RNodeBase<T>;
+	new (vNode: T, parent: Element, adjacent: Node | null, layer: RComponent): RNode & RNodeBase<T>;
 }
 /** Tracks a VNode that's currently rendered into the document */
 export abstract class RNodeBase<T extends VNode> {
@@ -26,7 +26,7 @@ export abstract class RNodeBase<T extends VNode> {
 	 * @param layer The component layer this RNode is in.
 	 * @returns false if the update could not be performed.
 	 */
-	abstract update(vNode: T, layer: ComponentLayer): boolean;
+	abstract update(vNode: T, layer: RComponent): boolean;
 	/**
 	 * Fully unmount this RNode.
 	 * @param removeSelf If false, the caller will have to call rNode.element.remove() afterwards.
@@ -55,7 +55,7 @@ export class RElement extends RNodeBase<VElement> {
 	element: Element;
 	svg: boolean;
 	static guard = isVElement;
-	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
+	constructor(public vNode: VElement, parent: Element, adjacent: Node | null, layer: RComponent) {
 		super();
 		const { type } = vNode;
 		const svg = type === "svg" || (parent.namespaceURI === SVG_NS && parent.tagName !== "foreignObject");
@@ -78,7 +78,7 @@ export class RElement extends RNodeBase<VElement> {
 		this.vNode.props.ref?.(null);
 		super.unmount(removeSelf);
 	}
-	update(vNode: VElement, layer: ComponentLayer) {
+	update(vNode: VElement, layer: RComponent) {
 		if (this.vNode.type !== vNode.type) {
 			return false;
 		}
@@ -107,8 +107,8 @@ export class RElement extends RNodeBase<VElement> {
 	}
 }
 /** RNode representing a VComponent */
-export class RComponent<P extends Record<string, any>> extends RNodeBase<VComponent> implements ComponentLayer {
-	parentLayer: ComponentLayer | undefined;
+export class RComponent<P extends Record<string, any> = any> extends RNodeBase<VComponent> implements RComponent {
+	parentLayer: RComponent | undefined;
 	layerRNode: RNode;
 	depth: number;
 	element = new Text();
@@ -123,7 +123,7 @@ export class RComponent<P extends Record<string, any>> extends RNodeBase<VCompon
 		public vNode: VComponent<P>,
 		parent: Element,
 		adjacent: Node | null,
-		parentLayer: ComponentLayer | undefined
+		parentLayer: RComponent | undefined
 	) {
 		super();
 		parent.insertBefore(this.element, adjacent);
@@ -192,7 +192,7 @@ export class RArray extends RNodeBase<VArray> {
 	element = new Text();
 	end = new Text();
 	static guard = isVArray;
-	constructor(public vNode: VArray, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
+	constructor(public vNode: VArray, parent: Element, adjacent: Node | null, layer: RComponent) {
 		super();
 		parent.insertBefore(this.element, adjacent);
 		this.children = vNode.map((v) => mount(v, parent, adjacent, layer));
@@ -205,7 +205,7 @@ export class RArray extends RNodeBase<VArray> {
 		this.end.remove();
 		super.unmount(removeSelf);
 	}
-	update(vNode: VArray, layer: ComponentLayer) {
+	update(vNode: VArray, layer: RComponent) {
 		const { children } = this;
 		const oldVNode = this.vNode;
 		const parent = this.element.parentElement!;
@@ -321,7 +321,7 @@ export class RText extends RNodeBase<VText> {
 export interface RElement {
 	constructor: typeof RElement & RNodeFactory<VElement>;
 }
-export interface RComponent<P extends Record<string, any>> {
+export interface RComponent<P extends Record<string, any> = any> {
 	constructor: typeof RComponent & RNodeFactory<VComponent>;
 }
 export interface RArray {
@@ -332,7 +332,7 @@ export interface RText {
 }
 export interface RNodeTypes {
 	element: RElement;
-	component: RComponent<any>;
+	component: RComponent;
 	array: RArray;
 	text: RText;
 }
@@ -354,7 +354,7 @@ export const rNodeFactories: RNodeFactory<any>[] = [
  * @param layer The current component layer.
  * @returns
  */
-export function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: ComponentLayer): RNode {
+export function mount(vNode: VNode, parent: Element, adjacent: Node | null, layer: RComponent): RNode {
 	for (const clazz of rNodeFactories) {
 		if (clazz.guard(vNode)) {
 			return new clazz(vNode, parent, adjacent, layer);
@@ -371,7 +371,7 @@ export function mount(vNode: VNode, parent: Element, adjacent: Node | null, laye
  * @param layer The current component layer.
  * @returns The new RNode.  May be the same as r if an in-place update was done.
  */
-export function diff(r: RNode, newVNode: VNode, layer: ComponentLayer) {
+export function diff(r: RNode, newVNode: VNode, layer: RComponent) {
 	const oldVNode = r.vNode;
 	if (oldVNode === newVNode) {
 		return r;

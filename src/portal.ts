@@ -1,5 +1,5 @@
-import { RNode, RNodeBase, RNodeFactory, diff, mount, rNodeFactories } from "./diff";
-import { ComponentLayer, KeyType, VNode } from "./types";
+import { KeyType, VNode } from "./types";
+import { RNode, RNodeBase, RNodeFactory, diff, mount, rNodeFactories, RComponent } from "./diff";
 
 export const Portal = /*#__PURE__*/ Symbol("vdomk.Portal");
 
@@ -29,7 +29,7 @@ class RPortal extends RNodeBase<VPortal> {
 	children: RNode;
 	element = new Text();
 	static guard = isVPortal;
-	constructor(public vNode: VPortal, parent: Element, adjacent: Node | null, layer: ComponentLayer) {
+	constructor(public vNode: VPortal, parent: Element, adjacent: Node | null, layer: RComponent) {
 		super();
 		parent.insertBefore(this.element, adjacent);
 		const { props } = vNode;
@@ -39,7 +39,7 @@ class RPortal extends RNodeBase<VPortal> {
 		this.children.unmount(true);
 		super.unmount(removeSelf);
 	}
-	update(vNode: VPortal, layer: ComponentLayer) {
+	update(vNode: VPortal, layer: RComponent) {
 		const oldProps = this.vNode.props;
 		const newProps = vNode.props;
 		if (oldProps.container !== newProps.container) {

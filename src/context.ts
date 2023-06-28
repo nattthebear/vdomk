@@ -1,5 +1,6 @@
 import { cleanup, scheduleUpdate } from "./hooks";
-import type { Component, LayerInstance, ComponentLayer, VNode } from "./types";
+import type { RComponent } from "./diff";
+import type { Component, LayerInstance, VNode } from "./types";
 
 export type Provider<T> = Component<{ value: T; children: VNode }>;
 export type Subscribe<T> = {
@@ -26,7 +27,7 @@ export function createContext<T>(defaultValue: T, equal: (x: T, y: T) => boolean
 				value,
 				subs: new Set(),
 			};
-			(instance as any as ComponentLayer).context = data as ContextData<unknown>;
+			(instance as any as RComponent).context = data as ContextData<unknown>;
 			return (nextProps) => {
 				const newValue = nextProps.value;
 				if (!equal(data.value, newValue)) {
@@ -39,7 +40,7 @@ export function createContext<T>(defaultValue: T, equal: (x: T, y: T) => boolean
 			};
 		},
 		subscribe(instance: LayerInstance, selector = (v: any) => v, equal = Object.is) {
-			for (let layer = instance as any as ComponentLayer | undefined; layer; layer = layer.parentLayer) {
+			for (let layer = instance as any as RComponent | undefined; layer; layer = layer.parentLayer) {
 				const { context } = layer;
 				if (context?.type === ret) {
 					const accessor = () => selector(context.value);
