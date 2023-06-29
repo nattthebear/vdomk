@@ -169,7 +169,7 @@ export class RComponent<P extends Record<string, any> = any> extends RNodeBase<V
 		const { cleanupQueue } = this;
 		if (cleanupQueue) {
 			for (let i = cleanupQueue.length - 1; i >= 0; i--) {
-				cleanupQueue[i]();
+				(0, cleanupQueue[i])();
 			}
 		}
 		this.layerRNode.unmount(true);
