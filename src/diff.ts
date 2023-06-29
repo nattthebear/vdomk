@@ -88,11 +88,11 @@ export class RElement extends RNodeBase<VElement> {
 		const depth = layer.depth + 1;
 		for (const k in oldProps) {
 			if (!(k in newProps)) {
-				setProperty(element, k, (oldProps as any)[k], undefined, svg, layer.depth + 1);
+				setProperty(element, k, (oldProps as any)[k], undefined, svg, depth);
 			}
 		}
 		for (const k in newProps) {
-			setProperty(element, k, (oldProps as any)[k], (newProps as any)[k], svg, layer.depth + 1);
+			setProperty(element, k, (oldProps as any)[k], (newProps as any)[k], svg, depth);
 		}
 		this.vNode = vNode;
 		const { children } = newProps;
