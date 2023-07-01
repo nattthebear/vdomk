@@ -1,10 +1,11 @@
 # vdomk
 
-This is an experimental React-like view layer. It's intended only as a research project and shouldn't be used by anything.
+This is an experimental React-like view layer. It's intended only as a research project
+and shouldn't be considered production ready.
 
 ## Usage
 
-Todos example:
+Example Todos App:
 
 ```typescript
 import { h, Fragment, createRoot, TPC, OPC, scheduleUpdate } from "vdomk";
@@ -76,10 +77,3 @@ It's somewhat inspired by [Crank](https://crank.js.org/).
 One-time setup goes in the first function, and then new props are accepted and rendered in the inner function.
 Many uses of, `useCallback`, `useRef`, and `useState` can be replaced with just local variables in the top scope.
 In lieu of `useMemo`, you can use a library like [Reselect](https://github.com/reduxjs/reselect) and call `createSelector` in the top scope.
-
-## What's broken or not yet implemented?
-
--   No `key` handling
--   `hooks.effect` just calls `setTimeout`
--   Bugs, bugs, bugs
--   React-like Context
