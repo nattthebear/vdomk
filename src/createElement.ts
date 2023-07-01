@@ -1,6 +1,5 @@
 import type { VArray, VComponent, VElement, VNode, Component } from "./types";
 
-const EMPTY_ARRAY: never[] = [];
 const EMPTY_OBJECT: Record<string, never> = {};
 
 export const Fragment = Symbol("vdomk.Fragment");
@@ -25,7 +24,7 @@ export function h(
 ): VElement | VComponent | VArray {
 	const key = props?.key;
 	if (type === Fragment) {
-		const ret: VArray = children.length > 0 ? children : props?.children ?? EMPTY_ARRAY;
+		const ret: VArray = children.length > 0 ? children : props?.children ?? [];
 		ret.key = key;
 		return ret;
 	}
