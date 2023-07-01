@@ -12,11 +12,12 @@
 	"scripts": {
 		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx",
 		"prettier": "prettier --write src/**/*.ts",
-		"build": "rimraf --glob build/*.ts build/*.js && tsc -p ./tsconfig-build.json"
+		"build": "rimraf --glob build/*.ts build/*.js && copyfiles LICENSE README.md build && tsc -p ./tsconfig-build.json"
 	},
 	"author": "",
 	"devDependencies": {
 		"@types/jsdom": "^21.1.1",
+		"copyfiles": "^2.4.1",
 		"husky": "^8.0.3",
 		"jsdom": "^22.1.0",
 		"prettier": "^2.8.8",
