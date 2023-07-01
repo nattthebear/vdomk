@@ -67,8 +67,7 @@ const TodoApp: TPC<{}> = (_, instance) => {
 	};
 };
 
-const root = createRoot(document.getElementById("root")!);
-root.render(<TodoApp />);
+createRoot(document.getElementById("root")!, <TodoApp />);
 ```
 
 ## What's up with the component model?
