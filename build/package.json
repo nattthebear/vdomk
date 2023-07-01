@@ -1,0 +1,32 @@
+{
+	"name": "vdomk",
+	"version": "0.1.0",
+	"description": "",
+	"homepage": "https://github.com/nattthebear/vdomk",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./index.js",
+			"types": "./index.d.ts"
+		},
+		"./context": {
+			"import": "./context.js",
+			"types": "./context.d.ts"
+		},
+		"./jsx-dev-runtime": {
+			"import": "./jsx-runtime.js",
+			"types": "./jsx-runtime.d.ts"
+		},
+		"./jsx-runtime": {
+			"import": "./jsx-runtime.js",
+			"types": "./jsx-runtime.d.ts"
+		},
+		"./portal": {
+			"import": "./portal.js",
+			"types": "./portal.d.ts"
+		}
+	},
+	"module": "./index.js",
+	"types": "./index.d.ts",
+	"author": ""
+}

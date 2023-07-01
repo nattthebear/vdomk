@@ -118,7 +118,7 @@ export class RComponent<P extends Record<string, any> = any> extends RNodeBase<V
 	pending = true;
 	cleanupQueue: (() => void)[] | undefined;
 	opc: OPC<P>;
-	context: import("./context").ContextData | undefined;
+	context: unknown | undefined;
 	static guard = isVComponent;
 	constructor(
 		public vNode: VComponent<P>,

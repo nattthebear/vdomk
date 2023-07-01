@@ -13,7 +13,7 @@ export interface Context<T> {
 	subscribe: Subscribe<T>;
 }
 
-export interface ContextData<T = unknown> {
+interface ContextData<T = unknown> {
 	type: Context<T>;
 	value: T;
 	subs: Set<() => void>;
@@ -27,7 +27,7 @@ export function createContext<T>(defaultValue: T, equal: (x: T, y: T) => boolean
 				value,
 				subs: new Set(),
 			};
-			(instance as any as RComponent).context = data as ContextData<unknown>;
+			(instance as any as RComponent).context = data;
 			return (nextProps) => {
 				const newValue = nextProps.value;
 				if (!equal(data.value, newValue)) {
@@ -41,7 +41,7 @@ export function createContext<T>(defaultValue: T, equal: (x: T, y: T) => boolean
 		},
 		subscribe(instance: LayerInstance, selector = (v: any) => v, equal = Object.is) {
 			for (let layer = instance as any as RComponent | undefined; layer; layer = layer.parentLayer) {
-				const { context } = layer;
+				const context = layer.context as ContextData<T>;
 				if (context?.type === ret) {
 					const accessor = () => selector(context.value);
 					let value = accessor();
