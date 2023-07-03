@@ -3,7 +3,7 @@ import { enqueueLayer } from "./root";
 import type { VNode, VElement, VComponent, VArray, VText, KeyType, OPC, LayerInstance } from "./types";
 import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
 
-export const SVG_NS = "http://www.w3.org/2000/svg";
+const SVG_NS = "http://www.w3.org/2000/svg";
 const { min } = Math;
 /** Factory to instantiate an RNode type */
 export interface RNodeFactory<T extends VNode> {
@@ -20,6 +20,8 @@ export abstract class RNodeBase<T extends VNode> {
 	abstract element: ChildNode;
 	/** If present, a marker node that defines the end of content for this VNode.  If not present, this.element is the only rendered Node. */
 	end: ChildNode | undefined;
+	/** Runs pre-removal effects such as unref and component lifecycles. */
+	cleanup() {}
 	/**
 	 * Attempts to update in place.
 	 * @param vNode A replacement VNode.
@@ -27,26 +29,26 @@ export abstract class RNodeBase<T extends VNode> {
 	 * @returns false if the update could not be performed.
 	 */
 	abstract update(vNode: T, layer: RComponent): boolean;
-	/**
-	 * Fully unmount this RNode.
-	 * @param removeSelf If false, the caller will have to call rNode.element.remove() afterwards.
-	 */
-	unmount(removeSelf: boolean) {
-		if (removeSelf) {
-			this.element.remove();
-		}
+	/** Removes all nodes from the DOM.  Should be called after `cleanup()` */
+	remove() {
+		const { element, end } = this;
+		const range = new Range();
+		range.setStartBefore(element);
+		range.setEndAfter(end ?? element);
+		return range.extractContents();
+	}
+	/** Calls cleanup followed by remove */
+	unmount() {
+		this.cleanup();
+		this.remove();
 	}
 	/**
 	 * Relocates this RNode in the DOM.  Must keep the same element parent.  Does not fire any lifecycle methods.
 	 * @param adjacent Reference Node to place this RNode before.  If null, this is placed at the end of it's parent.
 	 */
 	moveTo(adjacent: Node | null) {
-		const { element, end } = this;
-		const parent = element.parentElement!;
-		const range = new Range();
-		range.setStartBefore(element);
-		range.setEndAfter(end ?? element);
-		parent.insertBefore(range.extractContents(), adjacent);
+		const parent = this.element.parentElement!;
+		parent.insertBefore(this.remove(), adjacent);
 	}
 }
 /** RNode representing a VElement */
@@ -61,7 +63,6 @@ export class RElement extends RNodeBase<VElement> {
 		const svg = type === "svg" || (parent.namespaceURI === SVG_NS && parent.tagName !== "foreignObject");
 		const element = svg ? document.createElementNS(SVG_NS, type) : document.createElement(type);
 		this.svg = svg;
-		parent.insertBefore(element, adjacent);
 		this.element = element;
 		const { props } = vNode;
 		for (const k in props) {
@@ -71,12 +72,12 @@ export class RElement extends RNodeBase<VElement> {
 		if (children !== undefined) {
 			this.children = mount(children, element, null, layer);
 		}
+		parent.insertBefore(element, adjacent);
 	}
-	unmount(removeSelf: boolean) {
-		this.children?.unmount(true);
+	cleanup() {
+		this.children?.cleanup();
 		// Most props don't need to be unset when unmounting
 		this.vNode.props.ref?.(null);
-		super.unmount(removeSelf);
 	}
 	update(vNode: VElement, layer: RComponent) {
 		if (this.vNode.type !== vNode.type) {
@@ -99,7 +100,7 @@ export class RElement extends RNodeBase<VElement> {
 		if (this.children && children !== undefined) {
 			this.children = diff(this.children, children, layer);
 		} else if (this.children) {
-			this.children.unmount(true);
+			this.children.unmount();
 			this.children = undefined;
 		} else if (children !== undefined) {
 			this.children = mount(children, element, null, layer);
@@ -164,7 +165,7 @@ export class RComponent<P extends Record<string, any> = any> extends RNodeBase<V
 		enqueueLayer(this);
 	}
 
-	unmount(removeSelf: boolean) {
+	cleanup() {
 		this.alive = false;
 		const { cleanupQueue } = this;
 		if (cleanupQueue) {
@@ -172,8 +173,7 @@ export class RComponent<P extends Record<string, any> = any> extends RNodeBase<V
 				(0, cleanupQueue[i])();
 			}
 		}
-		this.layerRNode.unmount(true);
-		super.unmount(removeSelf);
+		this.layerRNode.cleanup();
 	}
 	update(vNode: VComponent) {
 		if (this.vNode.type !== vNode.type) {
@@ -199,12 +199,10 @@ export class RArray extends RNodeBase<VArray> {
 		this.children = vNode.map((v) => mount(v, parent, adjacent, layer));
 		parent.insertBefore(this.end, adjacent);
 	}
-	unmount(removeSelf: boolean) {
+	cleanup() {
 		for (const child of this.children) {
-			child.unmount(true);
+			child.cleanup();
 		}
-		this.end.remove();
-		super.unmount(removeSelf);
 	}
 	update(vNode: VArray, layer: RComponent) {
 		const { children } = this;
@@ -246,7 +244,7 @@ export class RArray extends RNodeBase<VArray> {
 			if (key !== undefined) {
 				(toBeUnmounted ??= new Map<KeyType, RNode>()).set(key, rNode);
 			} else {
-				rNode.unmount(true);
+				rNode.unmount();
 			}
 		}
 
@@ -287,7 +285,7 @@ export class RArray extends RNodeBase<VArray> {
 
 		if (toBeUnmounted) {
 			for (const rNode of toBeUnmounted.values()) {
-				rNode.unmount(true);
+				rNode.unmount();
 			}
 		}
 
@@ -380,8 +378,8 @@ export function diff(r: RNode, newVNode: VNode, layer: RComponent) {
 	if (r.constructor.guard(newVNode) && getVKey(oldVNode) === getVKey(newVNode) && r.update(newVNode as any, layer)) {
 		return r;
 	}
-	r.unmount(false);
+	r.cleanup();
 	const ret = mount(newVNode, r.element.parentElement!, r.element, layer);
-	r.element.remove();
+	r.remove();
 	return ret;
 }

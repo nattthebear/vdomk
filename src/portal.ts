@@ -35,9 +35,10 @@ class RPortal extends RNodeBase<VPortal> {
 		const { props } = vNode;
 		this.children = mount(props.children, props.container, props.adjacent, layer);
 	}
-	unmount(removeSelf: boolean) {
-		this.children.unmount(true);
-		super.unmount(removeSelf);
+	cleanup() {
+		// remove() is not called recursively; it assumes children are DOM-contained within the parent.
+		// So for portals, we need to remove children when parent cleans up.
+		this.children.unmount();
 	}
 	update(vNode: VPortal, layer: RComponent) {
 		const oldProps = this.vNode.props;

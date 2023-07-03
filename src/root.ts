@@ -64,7 +64,7 @@ export function createRoot(container: Element, initialVNode: VNode, adjacent?: N
 			flush();
 		},
 		unmount() {
-			topLayer.unmount(true);
+			topLayer.unmount();
 		},
 	};
 }
