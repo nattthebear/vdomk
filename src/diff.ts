@@ -1,4 +1,4 @@
-import { setProperty } from "./props";
+import { setControlledInputProps, setProperty } from "./props";
 import { enqueueLayer } from "./root";
 import type { VNode, VElement, VComponent, VArray, VText, KeyType, OPC, LayerInstance } from "./types";
 import { isVElement, isVArray, isVText, isVComponent, getVKey } from "./vdom";
@@ -72,6 +72,8 @@ export class RElement extends RNodeBase<VElement> {
 		if (children !== undefined) {
 			this.children = mount(children, element, null, layer);
 		}
+		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "value", props);
+		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "checked", props);
 		parent.insertBefore(element, adjacent);
 	}
 	cleanup() {
@@ -105,6 +107,8 @@ export class RElement extends RNodeBase<VElement> {
 		} else if (children !== undefined) {
 			this.children = mount(children, element, null, layer);
 		}
+		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "value", newProps);
+		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "checked", newProps);
 		return true;
 	}
 }

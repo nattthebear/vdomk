@@ -1,6 +1,7 @@
 import { enqueueEffect } from "./root";
 
 const EVENT_REGEX = /^on([a-z]+?)(capture)?$/i;
+const SKIP_REGEX = /^children|value|checked$/;
 
 /**
  * Set a prop on a DOM Element.  Might attach events, set DOM attributes, fire refs, or set DOM properties.
@@ -19,10 +20,7 @@ export function setProperty(
 	isSvg: boolean,
 	depth: number
 ) {
-	if (oldValue === newValue) {
-		return;
-	}
-	if (key === "children") {
+	if (oldValue === newValue || SKIP_REGEX.test(key)) {
 		return;
 	}
 	if (key === "ref") {
@@ -33,13 +31,14 @@ export function setProperty(
 
 	let match: RegExpMatchArray | null;
 	if ((match = key.match(EVENT_REGEX))) {
-		let [, eventName, capture] = match;
+		let [, eventName, captureName] = match;
 		eventName = eventName.toLowerCase();
+		const useCapture = !!captureName;
 		if (oldValue) {
-			element.removeEventListener(eventName, oldValue, !!capture);
+			element.removeEventListener(eventName, oldValue, useCapture);
 		}
 		if (newValue) {
-			element.addEventListener(eventName, newValue, !!capture);
+			element.addEventListener(eventName, newValue, useCapture);
 		}
 		return;
 	}
@@ -53,5 +52,24 @@ export function setProperty(
 		element.removeAttribute(key);
 	} else {
 		element.setAttribute(key, newValue);
+	}
+}
+
+/**
+ * Set certain input props diffed against the DOM to handle controlled input issues.
+ * @param element The element to set a property on.
+ * @param key The property name.
+ * @param props The props object that may contain [key].
+ */
+export function setControlledInputProps(
+	element: HTMLInputElement | HTMLSelectElement,
+	key: "value" | "checked",
+	props: Record<string, any>
+) {
+	if (key in props) {
+		const value = props[key];
+		if (value !== undefined && value !== (element as any)[key]) {
+			(element as any)[key] = value ?? "";
+		}
 	}
 }
