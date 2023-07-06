@@ -61,11 +61,7 @@ export function setProperty(
  * @param key The property name.
  * @param props The props object that may contain [key].
  */
-export function setControlledInputProps(
-	element: HTMLInputElement | HTMLSelectElement,
-	key: "value" | "checked",
-	props: Record<string, any>
-) {
+export function setControlledInputProps(element: Element, key: "value" | "checked", props: Record<string, any>) {
 	if (key in props) {
 		const value = props[key];
 		if (value !== undefined && value !== (element as any)[key]) {

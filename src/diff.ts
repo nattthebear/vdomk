@@ -72,8 +72,8 @@ export class RElement extends RNodeBase<VElement> {
 		if (children !== undefined) {
 			this.children = mount(children, element, null, layer);
 		}
-		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "value", props);
-		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "checked", props);
+		setControlledInputProps(element, "value", props);
+		setControlledInputProps(element, "checked", props);
 		parent.insertBefore(element, adjacent);
 	}
 	cleanup() {
@@ -107,8 +107,8 @@ export class RElement extends RNodeBase<VElement> {
 		} else if (children !== undefined) {
 			this.children = mount(children, element, null, layer);
 		}
-		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "value", newProps);
-		setControlledInputProps(element as HTMLInputElement | HTMLSelectElement, "checked", newProps);
+		setControlledInputProps(element, "value", newProps);
+		setControlledInputProps(element, "checked", newProps);
 		return true;
 	}
 }
