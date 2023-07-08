@@ -1,33 +1,10 @@
 import { describe, snapshot } from "./snapshots";
-import { JSDOM } from "jsdom";
 import assert from "node:assert/strict";
 import { createRoot } from "../root";
 import { h } from "../createElement";
 import type { VNode } from "../types";
 import "../portal";
-
-function wrapInDOM(callback: (dom: JSDOM) => void) {
-	const dom = new JSDOM(`<!DOCTYPE html><html><head><body>`);
-	global.document = dom.window.document;
-	global.Text = dom.window.Text;
-	try {
-		callback(dom);
-	} finally {
-		delete (global as any).document;
-		delete (global as any).Text;
-	}
-}
-async function wrapInDOMAsync(callback: (dom: JSDOM) => Promise<void>) {
-	const dom = new JSDOM(`<!DOCTYPE html><html><head><body>`);
-	global.document = dom.window.document;
-	global.Text = dom.window.Text;
-	try {
-		await callback(dom);
-	} finally {
-		delete (global as any).document;
-		delete (global as any).Text;
-	}
-}
+import { wrapInDOM, wrapInDOMAsync } from "./util";
 
 describe("render tests", import.meta.url, (it) => {
 	function doTest(name: string, vNode: VNode) {
@@ -35,6 +12,7 @@ describe("render tests", import.meta.url, (it) => {
 			wrapInDOM((dom) => {
 				const root = createRoot(dom.window.document.body, vNode);
 				snapshot(dom.window.document.body.innerHTML);
+				root.unmount();
 			});
 		});
 	}

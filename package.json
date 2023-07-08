@@ -1,6 +1,6 @@
 {
 	"name": "vdomk",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "",
 	"homepage": "https://github.com/nattthebear/vdomk",
 	"type": "module",
@@ -10,7 +10,7 @@
 		"./build/**"
 	],
 	"scripts": {
-		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx",
+		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx src/test/memo.test.tsx",
 		"prettier": "prettier --write src/**/*.ts",
 		"build": "rimraf --glob build/*.ts build/*.js && copyfiles LICENSE README.md build && tsc -p ./tsconfig-build.json",
 		"pack": "npm pack ./build"

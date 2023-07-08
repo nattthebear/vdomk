@@ -1,6 +1,6 @@
 {
 	"name": "vdomk",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"description": "",
 	"homepage": "https://github.com/nattthebear/vdomk",
 	"type": "module",
@@ -24,6 +24,10 @@
 		"./portal": {
 			"import": "./portal.js",
 			"types": "./portal.d.ts"
+		},
+		"./memo": {
+			"import": "./memo.js",
+			"types": "./memo.d.ts"
 		}
 	},
 	"module": "./index.js",
