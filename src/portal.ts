@@ -26,12 +26,18 @@ function isVPortal(vNode: VNode): vNode is VPortal {
 }
 
 class RPortal extends RNodeBase<VPortal> {
-	children: RNode;
-	element = new Text();
 	static guard = isVPortal;
+	children: RNode;
+	text = new Text();
+	start() {
+		return this.text;
+	}
+	end() {
+		return this.text;
+	}
 	constructor(public vNode: VPortal, parent: Element, adjacent: Node | null, layer: RComponent) {
 		super();
-		parent.insertBefore(this.element, adjacent);
+		parent.insertBefore(this.text, adjacent);
 		const { props } = vNode;
 		this.children = mount(props.children, props.container, props.adjacent, layer);
 	}
