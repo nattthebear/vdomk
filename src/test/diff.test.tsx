@@ -85,4 +85,28 @@ describe("misc tests", import.meta.url, (it) => {
 			assert.equal(ref2?.id, "1");
 		});
 	});
+	it("array edge case", async () => {
+		await wrapInDOMAsync(async (dom) => {
+			const root = createRoot(
+				dom.window.document.body,
+				<span>
+					a<span>{[]}</span>a
+				</span>
+			);
+			assert.equal(dom.window.document.body.textContent, "aa");
+			await root.render(
+				<span>
+					b<span>{[]}</span>b
+				</span>
+			);
+			assert.equal(dom.window.document.body.textContent, "bb");
+			await root.render(
+				<span>
+					c<span>{[]}</span>c
+				</span>
+			);
+			assert.equal(dom.window.document.body.textContent, "cc");
+			root.unmount();
+		});
+	});
 });

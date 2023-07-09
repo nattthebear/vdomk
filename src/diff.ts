@@ -238,10 +238,11 @@ export class RArray extends RNodeBase<VArray> {
 		let toBeMounted: ToBeMounted[] | undefined;
 		let toBeUnmounted: Map<KeyType, RNode> | undefined;
 		const oldLength = oldVNode.length;
-		const newLength = vNode.length;
+		let newLength = vNode.length;
 		let minLength = min(oldLength, newLength);
 		// Always put at least one undefined in the RNode array
 		minLength = max(minLength, 1);
+		newLength = max(newLength, 1);
 
 		function tryMount(adjacent: ChildNode | null, key: KeyType, vNode: VNode, index: number, canDefer: boolean) {
 			if (key !== undefined) {
