@@ -200,7 +200,7 @@ export class RComponent<P extends Record<string, any> = any> extends RNodeBase<V
 /** RNode representing a VArray */
 export class RArray extends RNodeBase<VArray> {
 	static guard = isVArray;
-	children: RNode[];
+	children: RNode[] = [];
 	start(): ChildNode {
 		return this.children[0].start();
 	}
@@ -209,8 +209,12 @@ export class RArray extends RNodeBase<VArray> {
 	}
 	constructor(public vNode: VArray, parent: Element, adjacent: Node | null, layer: RComponent) {
 		super();
-		const toMount = vNode.length > 0 ? vNode : [undefined];
-		this.children = toMount.map((v) => mount(v, parent, adjacent, layer));
+		const { children } = this;
+		// Always put at least one undefined in the RNode array
+		const len = max(vNode.length, 1);
+		for (let i = 0; i < len; i++) {
+			children[i] = mount(vNode[i], parent, adjacent, layer);
+		}
 	}
 	cleanup() {
 		for (const child of this.children) {

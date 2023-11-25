@@ -1,6 +1,6 @@
 {
 	"name": "vdomk",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"description": "",
 	"homepage": "https://github.com/nattthebear/vdomk",
 	"type": "module",
@@ -11,6 +11,7 @@
 	],
 	"scripts": {
 		"test": "node --experimental-loader ts-node/esm --test src/test/diff.test.tsx src/test/memo.test.tsx",
+		"test-profile": "dexnode --experimental-loader ts-node/esm --test src/test/diff.test.tsx",
 		"prettier": "prettier --write src/**/*.ts",
 		"build": "rimraf --glob build/*.ts build/*.js && copyfiles LICENSE README.md build && tsc -p ./tsconfig-build.json",
 		"pack": "npm pack ./build"
@@ -19,6 +20,7 @@
 	"devDependencies": {
 		"@types/jsdom": "^21.1.1",
 		"copyfiles": "^2.4.1",
+		"dexnode": "^1.2.1",
 		"husky": "^8.0.3",
 		"jsdom": "^22.1.0",
 		"prettier": "^2.8.8",

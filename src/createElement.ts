@@ -16,20 +16,24 @@ export function h<P extends { children: any[] }>(
 	props: Omit<P, "children">,
 	...children: P["children"]
 ): VComponent<P>;
-export function h(type: typeof Fragment, props: { children?: VNode[] }): VArray;
+export function h(type: typeof Fragment, props: { children?: VNode[] } | null): VArray;
 export function h(
 	type: Component<any> | string | typeof Fragment,
 	props: Record<string, any> | null,
 	...children: any[]
 ): VElement | VComponent | VArray {
 	const key = props?.key;
+	const { length } = children;
 	if (type === Fragment) {
-		const ret: VArray = children.length > 0 ? children : props?.children ?? [];
+		if (key === undefined) {
+			return length > 1 ? children : length ? children[0] : props?.children;
+		}
+		const ret: VArray = length ? children : [props?.children];
 		ret.key = key;
 		return ret;
 	}
-	if (children.length > 0) {
-		props = { ...props, children: children };
+	if (length) {
+		props = { ...props, children: length > 1 ? children : children[0] };
 	}
 	return {
 		type,
@@ -44,14 +48,17 @@ export function jsx<K extends keyof JSX.IntrinsicElements>(
 ): VElement<K>;
 export function jsx(type: string, props: JSX.HTMLAttributes<HTMLElement>, key?: KeyType): VElement;
 export function jsx<P extends Record<string, any>>(type: Component<P>, props: P, key?: KeyType): VComponent<P>;
-export function jsx(type: typeof Fragment, props: { children: VNode[] }, key?: KeyType): VArray;
+export function jsx(type: typeof Fragment, props: { children?: VNode }, key?: KeyType): VArray;
 export function jsx(
 	type: string | Component<any> | typeof Fragment,
 	props: Record<string, any>,
 	key?: KeyType
 ): VElement | VComponent | VArray {
 	if (type === Fragment) {
-		const ret: VArray = props.children;
+		if (key === undefined) {
+			return props.children;
+		}
+		const ret: VArray = [props.children];
 		ret.key = key;
 		return ret;
 	}
