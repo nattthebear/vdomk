@@ -25,18 +25,14 @@ const Todo: OPC<{ text: string; done: boolean; toggle(): void; remove(): void }>
 const TodoApp: TPC<{}> = (_, instance) => {
 	let todos: { text: string; done: boolean }[] = [];
 	let text = "";
-	let input: HTMLInputElement | null = null;
-	function refInput(el: HTMLInputElement | null) {
-		input = el;
-	}
 
 	function onChange(ev: JSX.TargetedEvent<HTMLInputElement>) {
 		text = ev.currentTarget.value;
+		scheduleUpdate(instance);
 	}
 	function addTodo() {
 		todos.push({ text, done: false });
 		text = "";
-		input!.value = ""; // Inputs are uncontrolled
 		scheduleUpdate(instance);
 	}
 	function handleToggle(index: number) {
@@ -48,27 +44,20 @@ const TodoApp: TPC<{}> = (_, instance) => {
 		scheduleUpdate(instance);
 	}
 
-	return () => {
-		return (
-			<>
-				<input type="text" value={text} onInput={onChange} ref={refInput} />
-				<button type="button" onClick={addTodo}>
-					Make new Todo
-				</button>
-				{todos.map(({ text, done }, index) => (
-					<Todo
-						text={text}
-						done={done}
-						toggle={() => handleToggle(index)}
-						remove={() => handleRemove(index)}
-					/>
-				))}
-			</>
-		);
-	};
+	return () => (
+		<>
+			<input type="text" value={text} onInput={onChange} />
+			<button type="button" disabled={!text} onClick={addTodo}>
+				Make new Todo
+			</button>
+			{todos.map(({ text, done }, index) => (
+				<Todo text={text} done={done} toggle={() => handleToggle(index)} remove={() => handleRemove(index)} />
+			))}
+		</>
+	);
 };
 
-createRoot(document.getElementById("root")!, <TodoApp />);
+createRoot(document.body, <TodoApp />);
 ```
 
 ## What's up with the component model?
